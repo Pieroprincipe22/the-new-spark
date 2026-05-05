@@ -36,9 +36,8 @@ export function BookingSection() {
   const [date, setDate] = useState("");
   const [selectedService, setSelectedService] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
-  const [bookedAppointments, setBookedAppointments] = useState<
-    BookedAppointment[]
-  >(getStoredAppointments);
+  const [bookedAppointments, setBookedAppointments] =
+    useState<BookedAppointment[]>(getStoredAppointments);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -122,7 +121,7 @@ Hora: ${selectedTime}`;
     window.open(whatsappLink, "_blank");
 
     setSuccessMessage(
-      `Cita demo registrada. El horario ${selectedTime} quedó ocupado para la fecha ${date}.`,
+      `Cita registrada. El horario ${selectedTime} quedó ocupado para la fecha ${date}.`,
     );
 
     setName("");
@@ -132,53 +131,51 @@ Hora: ${selectedTime}`;
   }
 
   return (
-    <section className="bg-black px-5 py-14">
-      <div className="mx-auto max-w-7xl rounded-3xl border border-white/10 bg-zinc-950 p-6 md:p-8">
-        <div className="mb-8 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full border border-amber-400/40 text-amber-400">
-            <CalendarDays className="h-6 w-6" />
-          </div>
+    <section
+      id="reserva"
+      className="border border-white/70 bg-black/75 p-4 sm:p-5"
+    >
+      <div className="mb-5 flex items-center gap-4">
+        <div className="h-px flex-1 bg-white/60" />
+        <h2 className="text-center text-2xl font-black uppercase tracking-tight text-white sm:text-3xl">
+          Reserva tu cita
+        </h2>
+        <div className="h-px flex-1 bg-white/60" />
+      </div>
 
-          <div>
-            <p className="text-sm font-semibold text-amber-400">
-              Reserva tu cita
-            </p>
-
-            <h2 className="font-serif text-3xl text-white">
-              Rápido, fácil y por WhatsApp.
-            </h2>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="grid gap-5 md:grid-cols-5">
-          <label className="space-y-2">
-            <span className="text-sm font-medium text-zinc-200">Nombre</span>
+      <form
+        onSubmit={handleSubmit}
+        className="grid gap-6 lg:grid-cols-[0.47fr_1px_0.53fr]"
+      >
+        <div className="grid gap-3">
+          <label className="grid gap-2 text-sm font-semibold text-white sm:grid-cols-[82px_1fr] sm:items-center">
+            Nombre
             <input
               type="text"
               placeholder="Tu nombre"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-amber-400"
+              className="rounded-sm border border-white/35 bg-black px-4 py-3 text-white outline-none placeholder:text-white/40 focus:border-white"
             />
           </label>
 
-          <label className="space-y-2">
-            <span className="text-sm font-medium text-zinc-200">Teléfono</span>
+          <label className="grid gap-2 text-sm font-semibold text-white sm:grid-cols-[82px_1fr] sm:items-center">
+            Teléfono
             <input
               type="tel"
               placeholder="Tu teléfono"
               value={phone}
               onChange={(event) => setPhone(event.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-amber-400"
+              className="rounded-sm border border-white/35 bg-black px-4 py-3 text-white outline-none placeholder:text-white/40 focus:border-white"
             />
           </label>
 
-          <label className="space-y-2">
-            <span className="text-sm font-medium text-zinc-200">Servicio</span>
+          <label className="grid gap-2 text-sm font-semibold text-white sm:grid-cols-[82px_1fr] sm:items-center">
+            Servicio
             <select
               value={selectedService}
               onChange={(event) => setSelectedService(event.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white outline-none transition focus:border-amber-400"
+              className="rounded-sm border border-white/35 bg-black px-4 py-3 text-white outline-none focus:border-white"
             >
               <option value="">Selecciona un servicio</option>
 
@@ -190,8 +187,8 @@ Hora: ${selectedTime}`;
             </select>
           </label>
 
-          <label className="space-y-2">
-            <span className="text-sm font-medium text-zinc-200">Fecha</span>
+          <label className="grid gap-2 text-sm font-semibold text-white sm:grid-cols-[82px_1fr] sm:items-center">
+            Fecha
             <input
               type="date"
               value={date}
@@ -199,77 +196,82 @@ Hora: ${selectedTime}`;
                 setDate(event.target.value);
                 setSelectedTime("");
               }}
-              className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white outline-none transition focus:border-amber-400"
+              className="rounded-sm border border-white/35 bg-black px-4 py-3 text-white outline-none focus:border-white"
             />
           </label>
+        </div>
 
-          <div className="space-y-2">
-            <span className="text-sm font-medium text-zinc-200">Hora</span>
+        <div className="hidden bg-white/70 lg:block" />
 
-            <div className="flex flex-wrap gap-2">
-              {availableTimes.map((slot) => {
-                const isBooked = date ? isTimeBooked(slot.time) : false;
-                const isSelected = selectedTime === slot.time;
-                const isDisabled = !date || isBooked || !slot.available;
+        <div>
+          <p className="mb-3 text-sm font-semibold text-white">
+            Selecciona una hora
+          </p>
 
-                return (
-                  <button
-                    key={slot.time}
-                    type="button"
-                    disabled={isDisabled}
-                    onClick={() => setSelectedTime(slot.time)}
-                    className={
-                      isBooked
-                        ? "cursor-not-allowed rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-sm text-zinc-500"
-                        : isSelected
-                          ? "rounded-xl border border-amber-400 bg-amber-400 px-4 py-3 text-sm font-bold text-black transition"
-                          : "rounded-xl border border-amber-400/60 px-4 py-3 text-sm font-semibold text-amber-400 transition hover:bg-amber-400 hover:text-black disabled:cursor-not-allowed disabled:border-white/10 disabled:text-zinc-600 disabled:hover:bg-transparent disabled:hover:text-zinc-600"
-                    }
-                  >
-                    {slot.time}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {availableTimes.map((slot) => {
+              const isBooked = date ? isTimeBooked(slot.time) : false;
+              const isSelected = selectedTime === slot.time;
+              const isDisabled = !date || isBooked || !slot.available;
 
-                    {isBooked && <span className="block text-xs">Ocupado</span>}
-                  </button>
-                );
-              })}
-            </div>
+              return (
+                <button
+                  key={slot.time}
+                  type="button"
+                  disabled={isDisabled}
+                  onClick={() => setSelectedTime(slot.time)}
+                  className={
+                    isBooked
+                      ? "cursor-not-allowed rounded-md border border-white/15 bg-zinc-900 px-3 py-3 text-sm font-semibold text-white/35"
+                      : isSelected
+                        ? "rounded-md border border-white bg-white px-3 py-3 text-sm font-black text-black"
+                        : "rounded-md border border-white/45 px-3 py-3 text-sm font-semibold text-white transition hover:bg-white hover:text-black disabled:cursor-not-allowed disabled:border-white/15 disabled:text-white/30 disabled:hover:bg-transparent disabled:hover:text-white/30"
+                  }
+                >
+                  {slot.time}
+
+                  {isBooked && <span className="block text-xs">Ocupado</span>}
+                </button>
+              );
+            })}
           </div>
 
           <button
             type="submit"
-            className="mt-3 rounded-xl bg-amber-400 px-6 py-4 text-sm font-bold text-black transition hover:bg-amber-300 md:col-span-5"
+            className="mt-5 inline-flex w-full items-center justify-center gap-3 rounded-md bg-white px-6 py-3 font-black text-black transition hover:bg-white/85"
           >
+            <CalendarDays className="h-5 w-5" />
             Confirmar cita
           </button>
-        </form>
+        </div>
+      </form>
 
-        {error && (
-          <p className="mt-5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-center text-sm text-red-300">
-            {error}
-          </p>
-        )}
-
-        {successMessage && (
-          <p className="mt-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-center text-sm text-emerald-300">
-            {successMessage}
-          </p>
-        )}
-
-        {selectedTime && !error && (
-          <p className="mt-5 text-center text-sm text-amber-400">
-            Hora seleccionada: {selectedTime}
-          </p>
-        )}
-
-        <p className="mt-5 flex items-center justify-center gap-2 text-center text-sm text-zinc-500">
-          <Lock className="h-4 w-4" />
-          Tu información solo se usará para confirmar tu reserva.
+      {error && (
+        <p className="mt-5 rounded-md border border-red-400/50 bg-red-950/35 px-4 py-3 text-center text-sm text-red-200">
+          {error}
         </p>
+      )}
 
-        <p className="mt-3 text-center text-xs text-zinc-600">
-          Modo demo: las citas ocupadas se guardan solo en este navegador.
+      {successMessage && (
+        <p className="mt-5 rounded-md border border-emerald-400/50 bg-emerald-950/35 px-4 py-3 text-center text-sm text-emerald-200">
+          {successMessage}
         </p>
-      </div>
+      )}
+
+      {selectedTime && !error && (
+        <p className="mt-5 text-center text-sm font-semibold text-white">
+          Hora seleccionada: {selectedTime}
+        </p>
+      )}
+
+      <p className="mt-5 flex items-center justify-center gap-2 text-center text-xs text-white/45">
+        <Lock className="h-4 w-4" />
+        Tu información solo se usará para confirmar tu reserva.
+      </p>
+
+      <p className="mt-2 text-center text-xs text-white/35">
+        Modo demo: las citas ocupadas se guardan solo en este navegador.
+      </p>
     </section>
   );
 }

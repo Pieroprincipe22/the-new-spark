@@ -4,16 +4,16 @@ export const siteConfig = {
   instagram: "https://www.instagram.com/nthenewspark?igsh=NzZwdGNrY3c3aXV5",
   instagramHandle: "@nthenewspark",
 
-  // Número demo del negocio para pruebas con WhatsApp.
-  // Más adelante se cambia por el número real de The New Spark.
+  // Número actual usado para las pruebas con WhatsApp.
+  // Cuando el cliente confirme su número final, se cambia aquí.
   whatsappNumber: "+34662230482",
   displayPhone: "+34 662 230 482",
 
   address: "Dirección pendiente",
   hours: {
-    weekdays: "Lun - Vie: 9 AM - 6 PM",
-    saturday: "Sáb: 9 AM - 6 PM",
-    sunday: "Domingo: Cerrado",
+    weekdays: "Lunes a Viernes: 9:00 AM - 7:00 PM",
+    saturday: "Sábado: 9:00 AM - 7:00 PM",
+    sunday: "Domingo: 10:00 AM - 4:00 PM",
   },
 };
 
@@ -21,21 +21,21 @@ export const services = [
   {
     id: "corte",
     name: "Corte",
-    description: "Corte moderno y personalizado.",
+    description: "Corte moderno adaptado a tu estilo y tipo de cabello.",
     price: "$250",
     durationMinutes: 60,
   },
   {
     id: "barba",
     name: "Barba",
-    description: "Perfilado y arreglo de barba.",
-    price: "$200",
+    description: "Arreglo y perfilado de barba con toallas calientes.",
+    price: "$180",
     durationMinutes: 60,
   },
   {
     id: "corte-barba",
     name: "Corte + barba",
-    description: "El combo perfecto.",
+    description: "El combo perfecto para un look completo y definido.",
     price: "$400",
     durationMinutes: 60,
   },

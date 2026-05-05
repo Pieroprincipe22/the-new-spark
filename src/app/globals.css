@@ -4,6 +4,10 @@
   color-scheme: dark;
 }
 
+* {
+  box-sizing: border-box;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -11,4 +15,26 @@ html {
 body {
   margin: 0;
   background: #000;
+  color: #fff;
+}
+
+::selection {
+  background: #ffffff;
+  color: #000000;
+}
+
+.font-blackletter {
+  font-family:
+    "Old English Text MT",
+    "Cloister Black",
+    "UnifrakturMaguntia",
+    "Blackletter",
+    Georgia,
+    serif;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(1);
+  opacity: 0.85;
 }

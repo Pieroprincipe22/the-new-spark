@@ -5,10 +5,14 @@ import { ContactSection } from "@/components/sections/ContactSection";
 
 export default function HomePage() {
   return (
-    <main>
+    <main className="bg-black text-white">
       <Hero />
-      <Services />
-      <BookingSection />
+
+      <section className="relative z-10 mx-auto -mt-24 grid max-w-7xl gap-4 px-5 pb-4 lg:grid-cols-[0.49fr_0.51fr] lg:px-8">
+        <Services />
+        <BookingSection />
+      </section>
+
       <ContactSection />
     </main>
   );

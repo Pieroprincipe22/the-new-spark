@@ -1,65 +1,61 @@
-import { CalendarDays, MessageCircle, Scissors } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { CalendarDays, MessageCircle } from "lucide-react";
 import { createWhatsappLink } from "@/lib/whatsapp";
 
 export function Hero() {
   const whatsappMessage = "Hola, quiero reservar una cita en The New Spark.";
 
   return (
-    <section className="relative overflow-hidden bg-linear-to-b from-black via-zinc-950 to-black">
-      <div className="mx-auto grid max-w-7xl items-center gap-10 px-5 py-16 md:grid-cols-2 md:py-24">
-        <div>
-          <p className="mb-4 text-sm font-semibold uppercase tracking-[0.3em] text-amber-400">
-            Barbería & estilo
+    <section
+      id="inicio"
+      className="relative isolate min-h-screen overflow-hidden bg-black"
+    >
+      <div
+        className="absolute inset-0 -z-30 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: "url('/images/hero-barber-bg.png')",
+        }}
+      />
+
+      <div className="absolute inset-0 -z-20 bg-[linear-gradient(90deg,#000_0%,rgba(0,0,0,.84)_18%,rgba(0,0,0,.30)_46%,rgba(0,0,0,.08)_100%)]" />
+
+      <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(0,0,0,.04),#000_96%)]" />
+
+      <div className="relative flex min-h-screen w-full items-start px-6 pb-10 pt-36 sm:px-8 sm:pt-40 lg:px-10 xl:px-12">
+        <div className="w-full max-w-[520px] pt-4 sm:pt-6 lg:pt-10">
+          <p className="mb-5 text-xs font-black uppercase tracking-[0.34em] text-white/55">
+            Barbería · estilo · reservas
           </p>
 
-          <h1 className="font-serif text-5xl font-bold leading-tight text-white md:text-7xl">
-            Reserva <span className="block text-amber-400">tu estilo</span>
+          <h1 className="text-6xl font-black uppercase leading-[0.88] tracking-tight text-white drop-shadow-2xl sm:text-7xl lg:text-8xl">
+            Reserva
+            <br />
+            tu estilo
           </h1>
 
-          <p className="mt-6 max-w-xl text-lg leading-8 text-zinc-300">
-            Cortes modernos, atención profesional y citas rápidas por WhatsApp.
+          <div className="mt-6 h-px w-14 bg-white" />
+
+          <p className="mt-4 max-w-sm text-lg leading-tight text-white/82">
+            Cortes modernos, atención profesional y reservas fáciles.
           </p>
 
-          <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-            <Button href="/reservar">
-              <CalendarDays className="mr-2 h-5 w-5" />
-              Reservar cita
-            </Button>
-
-            <Button
-              href={createWhatsappLink(whatsappMessage)}
-              variant="secondary"
+          <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+            <a
+              href="#reserva"
+              className="inline-flex items-center justify-center gap-3 rounded-sm bg-white px-8 py-3 font-black text-black transition hover:bg-white/85"
             >
-              <MessageCircle className="mr-2 h-5 w-5" />
+              <CalendarDays className="h-5 w-5" />
+              Reservar cita
+            </a>
+
+            <a
+              href={createWhatsappLink(whatsappMessage)}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center justify-center gap-3 rounded-sm border border-white/55 px-8 py-3 font-black text-white transition hover:bg-white hover:text-black"
+            >
+              <MessageCircle className="h-5 w-5" />
               WhatsApp
-            </Button>
-          </div>
-        </div>
-
-        <div className="relative min-h-90 overflow-hidden rounded-3xl border border-amber-400/20 bg-zinc-950 shadow-2xl">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.25),transparent_35%),linear-gradient(135deg,#111827,#000000)]" />
-
-          <div className="relative flex min-h-90 flex-col justify-between p-8">
-            <div className="flex justify-end">
-              <div className="rounded-full border border-amber-400/40 p-5 text-amber-400">
-                <Scissors className="h-16 w-16" />
-              </div>
-            </div>
-
-            <div>
-              <p className="mb-3 text-sm uppercase tracking-[0.25em] text-amber-400">
-                The New Spark
-              </p>
-
-              <h2 className="font-serif text-4xl text-white">
-                Imagen moderna, atención profesional.
-              </h2>
-
-              <p className="mt-4 max-w-md text-sm leading-6 text-zinc-400">
-                Aquí irá la foto principal del negocio o del barbero trabajando.
-              </p>
-            </div>
+            </a>
           </div>
         </div>
       </div>
