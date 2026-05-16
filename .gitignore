@@ -1,25 +1,26 @@
-# Dependencias
-node_modules/
+# dependencies
+node_modules
 
-# Next.js
-.next/
-out/
-build/
-dist/
+# next
+.next
+out
 
-# Variables de entorno
+# production
+build
+
+# env
 .env
-.env.*
-!.env.example
+.env.local
+.env.*.local
 
-# Logs
+# logs
 npm-debug.log*
 yarn-debug.log*
+yarn-error.log*
 pnpm-debug.log*
 
-# Sistema
+# system
 .DS_Store
-Thumbs.db
 
-# Archivos temporales
-*.log
+# local data
+data/appointments.json

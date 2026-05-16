@@ -21,7 +21,7 @@ export function Hero() {
       <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(0,0,0,.04),#000_96%)]" />
 
       <div className="relative flex min-h-screen w-full items-start px-6 pb-10 pt-36 sm:px-8 sm:pt-40 lg:px-10 xl:px-12">
-        <div className="w-full max-w-[520px] pt-4 sm:pt-6 lg:pt-10">
+        <div className="w-full max-w-130 pt-4 sm:pt-6 lg:pt-10">
           <p className="mb-5 text-xs font-black uppercase tracking-[0.34em] text-white/55">
             Barbería · estilo · reservas
           </p>

@@ -5,77 +5,39 @@ export const siteConfig = {
   instagramHandle: "@nthenewspark",
 
   // Número actual usado para las pruebas con WhatsApp.
-  // Cuando el cliente confirme su número final, se cambia aquí.
+  // Cuando Nick confirme el número final del negocio, se cambia aquí.
   whatsappNumber: "+34662230482",
   displayPhone: "+34 662 230 482",
 
   address: "Dirección pendiente",
+
   hours: {
-    weekdays: "Lunes a Viernes: 9:00 AM - 7:00 PM",
-    saturday: "Sábado: 9:00 AM - 7:00 PM",
-    sunday: "Domingo: 10:00 AM - 4:00 PM",
+    weekdays: "Lunes a Viernes: 09:00 - 19:00",
+    saturday: "Sábado: 09:00 - 19:00",
+    sunday: "Domingo: 10:00 - 16:00",
   },
 };
 
-export const services = [
-  {
-    id: "corte",
-    name: "Corte",
-    description: "Corte moderno adaptado a tu estilo y tipo de cabello.",
-    price: "$250",
-    durationMinutes: 60,
-  },
-  {
-    id: "barba",
-    name: "Barba",
-    description: "Arreglo y perfilado de barba con toallas calientes.",
-    price: "$180",
-    durationMinutes: 60,
-  },
-  {
-    id: "corte-barba",
-    name: "Corte + barba",
-    description: "El combo perfecto para un look completo y definido.",
-    price: "$400",
-    durationMinutes: 60,
-  },
-];
-
 export const availableTimes = [
-  {
-    time: "9:00 AM",
-    available: true,
-  },
-  {
-    time: "10:00 AM",
-    available: true,
-  },
-  {
-    time: "11:00 AM",
-    available: true,
-  },
-  {
-    time: "12:00 PM",
-    available: true,
-  },
-  {
-    time: "1:00 PM",
-    available: true,
-  },
-  {
-    time: "2:00 PM",
-    available: true,
-  },
-  {
-    time: "3:00 PM",
-    available: true,
-  },
-  {
-    time: "4:00 PM",
-    available: true,
-  },
-  {
-    time: "5:00 PM",
-    available: true,
-  },
+  { time: "09:00", available: true },
+  { time: "09:30", available: true },
+  { time: "10:00", available: true },
+  { time: "10:30", available: true },
+  { time: "11:00", available: true },
+  { time: "11:30", available: true },
+  { time: "12:00", available: true },
+  { time: "12:30", available: true },
+  { time: "13:00", available: true },
+  { time: "13:30", available: true },
+  { time: "14:00", available: true },
+  { time: "14:30", available: true },
+  { time: "15:00", available: true },
+  { time: "15:30", available: true },
+  { time: "16:00", available: true },
+  { time: "16:30", available: true },
+  { time: "17:00", available: true },
+  { time: "17:30", available: true },
+  { time: "18:00", available: true },
+  { time: "18:30", available: true },
+  { time: "19:00", available: true },
 ];

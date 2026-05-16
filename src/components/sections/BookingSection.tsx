@@ -1,277 +1,461 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
-import { CalendarDays, Lock } from "lucide-react";
-import { availableTimes, services } from "@/data/site";
-import { createWhatsappLink } from "@/lib/whatsapp";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 
-type BookedAppointment = {
+type CatalogService = {
+  id?: string;
+  name?: string;
+  title?: string;
+  price?: string | number;
+  duration?: string | number;
+  durationMinutes?: number;
+  minutes?: number;
+};
+
+type BookingSectionProps = {
+  services: CatalogService[];
+};
+
+type BookingForm = {
+  name: string;
+  phone: string;
+  service: string;
   date: string;
   time: string;
 };
 
-const STORAGE_KEY = "the-new-spark-demo-citas";
+type BookedTimesResponse = {
+  date?: string;
+  bookedTimes?: string[];
+  error?: string;
+};
 
-function getStoredAppointments(): BookedAppointment[] {
-  if (typeof window === "undefined") {
-    return [];
+const AVAILABLE_TIMES = [
+  "09:00",
+  "09:30",
+  "10:00",
+  "10:30",
+  "11:00",
+  "11:30",
+  "12:00",
+  "12:30",
+  "13:00",
+  "13:30",
+  "14:00",
+  "14:30",
+  "15:00",
+  "15:30",
+  "16:00",
+  "16:30",
+  "17:00",
+  "17:30",
+  "18:00",
+  "18:30",
+  "19:00",
+];
+
+const initialForm: BookingForm = {
+  name: "",
+  phone: "",
+  service: "",
+  date: "",
+  time: "",
+};
+
+function formatPrice(price: CatalogService["price"]) {
+  if (typeof price === "number") {
+    return `${price.toFixed(2).replace(".", ",")} €`;
   }
 
-  const storedAppointments = window.localStorage.getItem(STORAGE_KEY);
-
-  if (!storedAppointments) {
-    return [];
+  if (typeof price === "string" && price.trim()) {
+    return price;
   }
 
-  try {
-    return JSON.parse(storedAppointments) as BookedAppointment[];
-  } catch {
-    return [];
-  }
+  return "";
 }
 
-export function BookingSection() {
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [date, setDate] = useState("");
-  const [selectedService, setSelectedService] = useState("");
-  const [selectedTime, setSelectedTime] = useState("");
-  const [bookedAppointments, setBookedAppointments] =
-    useState<BookedAppointment[]>(getStoredAppointments);
-  const [error, setError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
-
-  function isTimeBooked(time: string) {
-    return bookedAppointments.some(
-      (appointment) => appointment.date === date && appointment.time === time,
-    );
+function formatDuration(service: CatalogService) {
+  if (typeof service.duration === "number") {
+    return `${service.duration} min`;
   }
 
-  function saveBookedAppointment(newAppointment: BookedAppointment) {
-    const updatedAppointments = [...bookedAppointments, newAppointment];
-
-    setBookedAppointments(updatedAppointments);
-
-    window.localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(updatedAppointments),
-    );
+  if (typeof service.duration === "string" && service.duration.trim()) {
+    return service.duration;
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  if (typeof service.durationMinutes === "number") {
+    return `${service.durationMinutes} min`;
+  }
+
+  if (typeof service.minutes === "number") {
+    return `${service.minutes} min`;
+  }
+
+  return "";
+}
+
+function getServiceName(service: CatalogService) {
+  return service.name || service.title || "Servicio";
+}
+
+function getServiceLabel(service: CatalogService) {
+  const name = getServiceName(service);
+  const price = formatPrice(service.price);
+  const duration = formatDuration(service);
+
+  return [name, price, duration].filter(Boolean).join(" - ");
+}
+
+export function BookingSection({ services }: BookingSectionProps) {
+  const [form, setForm] = useState<BookingForm>(initialForm);
+  const [bookedTimes, setBookedTimes] = useState<string[]>([]);
+  const [loadingTimes, setLoadingTimes] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error" | "">("");
+
+  const today = useMemo(() => {
+    const date = new Date();
+    return date.toLocaleDateString("en-CA");
+  }, []);
+
+  useEffect(() => {
+    if (!form.date) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    void fetch(`/api/appointments?date=${encodeURIComponent(form.date)}`, {
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const data = (await response.json()) as BookedTimesResponse;
+
+        if (!response.ok) {
+          throw new Error(
+            data.error || "No se pudieron cargar los horarios ocupados."
+          );
+        }
+
+        return data;
+      })
+      .then((data) => {
+        setBookedTimes(Array.isArray(data.bookedTimes) ? data.bookedTimes : []);
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        console.error(error);
+        setBookedTimes([]);
+        setMessage("No se pudieron cargar los horarios ocupados.");
+        setMessageType("error");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoadingTimes(false);
+        }
+      });
+
+    return () => {
+      controller.abort();
+    };
+  }, [form.date]);
+
+  const handleChange = (
+    event: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = event.target;
+
+    if (name === "date") {
+      setBookedTimes([]);
+      setLoadingTimes(Boolean(value));
+      setMessage("");
+      setMessageType("");
+
+      setForm((current) => ({
+        ...current,
+        date: value,
+        time: "",
+      }));
+
+      return;
+    }
+
+    setForm((current) => ({
+      ...current,
+      [name]: value,
+    }));
+  };
+
+  const handleSelectTime = (time: string) => {
+    setMessage("");
+    setMessageType("");
+
+    setForm((current) => ({
+      ...current,
+      time,
+    }));
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!name.trim()) {
-      setError("Escribe tu nombre para continuar.");
-      setSuccessMessage("");
+    setMessage("");
+    setMessageType("");
+
+    const cleanForm: BookingForm = {
+      name: form.name.trim(),
+      phone: form.phone.trim(),
+      service: form.service.trim(),
+      date: form.date.trim(),
+      time: form.time.trim(),
+    };
+
+    if (
+      !cleanForm.name ||
+      !cleanForm.phone ||
+      !cleanForm.service ||
+      !cleanForm.date ||
+      !cleanForm.time
+    ) {
+      setMessage("Todos los campos son obligatorios.");
+      setMessageType("error");
       return;
     }
 
-    if (!phone.trim()) {
-      setError("Escribe tu número de teléfono para continuar.");
-      setSuccessMessage("");
+    if (bookedTimes.includes(cleanForm.time)) {
+      setMessage("Ese horario ya está reservado. Elige otro.");
+      setMessageType("error");
       return;
     }
 
-    if (!selectedService) {
-      setError("Selecciona un servicio.");
-      setSuccessMessage("");
-      return;
+    try {
+      setSubmitting(true);
+
+      const response = await fetch("/api/appointments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: cleanForm.name,
+          phone: cleanForm.phone,
+          service: cleanForm.service,
+          date: cleanForm.date,
+          time: cleanForm.time,
+        }),
+      });
+
+      const data = (await response.json()) as {
+        message?: string;
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(data.error || "No se pudo guardar la cita.");
+      }
+
+      setBookedTimes((current) =>
+        current.includes(cleanForm.time)
+          ? current
+          : [...current, cleanForm.time]
+      );
+
+      setMessage("Cita reservada correctamente.");
+      setMessageType("success");
+
+      setForm({
+        ...initialForm,
+        date: cleanForm.date,
+      });
+    } catch (error) {
+      console.error(error);
+
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "No se pudo guardar la cita."
+      );
+      setMessageType("error");
+    } finally {
+      setSubmitting(false);
     }
-
-    if (!date) {
-      setError("Selecciona una fecha para la cita.");
-      setSuccessMessage("");
-      return;
-    }
-
-    if (!selectedTime) {
-      setError("Selecciona un horario disponible.");
-      setSuccessMessage("");
-      return;
-    }
-
-    if (isTimeBooked(selectedTime)) {
-      setError("Ese horario ya está ocupado. Selecciona otro horario.");
-      setSuccessMessage("");
-      return;
-    }
-
-    setError("");
-
-    saveBookedAppointment({
-      date,
-      time: selectedTime,
-    });
-
-    const selectedServiceName =
-      services.find((service) => service.id === selectedService)?.name ??
-      "Servicio no especificado";
-
-    const message = `Hola, quiero confirmar una cita en The New Spark.
-
-Nombre: ${name}
-Teléfono: ${phone}
-Servicio: ${selectedServiceName}
-Fecha: ${date}
-Hora: ${selectedTime}`;
-
-    const whatsappLink = createWhatsappLink(message);
-
-    window.open(whatsappLink, "_blank");
-
-    setSuccessMessage(
-      `Cita registrada. El horario ${selectedTime} quedó ocupado para la fecha ${date}.`,
-    );
-
-    setName("");
-    setPhone("");
-    setSelectedService("");
-    setSelectedTime("");
-  }
+  };
 
   return (
     <section
-      id="reserva"
-      className="border border-white/70 bg-black/75 p-4 sm:p-5"
+      id="reservar"
+      className="border border-zinc-700 bg-black px-5 py-8 text-white"
     >
-      <div className="mb-5 flex items-center gap-4">
-        <div className="h-px flex-1 bg-white/60" />
-        <h2 className="text-center text-2xl font-black uppercase tracking-tight text-white sm:text-3xl">
+      <div className="mb-8 flex items-center gap-4">
+        <div className="h-px flex-1 bg-zinc-500" />
+
+        <h2 className="text-center text-3xl font-black uppercase tracking-tight">
           Reserva tu cita
         </h2>
-        <div className="h-px flex-1 bg-white/60" />
+
+        <div className="h-px flex-1 bg-zinc-500" />
       </div>
 
-      <form
-        onSubmit={handleSubmit}
-        className="grid gap-6 lg:grid-cols-[0.47fr_1px_0.53fr]"
-      >
-        <div className="grid gap-3">
-          <label className="grid gap-2 text-sm font-semibold text-white sm:grid-cols-[82px_1fr] sm:items-center">
-            Nombre
-            <input
-              type="text"
-              placeholder="Tu nombre"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              className="rounded-sm border border-white/35 bg-black px-4 py-3 text-white outline-none placeholder:text-white/40 focus:border-white"
-            />
-          </label>
+      <form onSubmit={handleSubmit}>
+        <div className="grid gap-8 lg:grid-cols-[1fr_220px]">
+          <div className="grid gap-8">
+            <div className="grid gap-3 sm:grid-cols-[100px_1fr] sm:items-center">
+              <label htmlFor="home-booking-name" className="text-sm font-bold">
+                Nombre
+              </label>
 
-          <label className="grid gap-2 text-sm font-semibold text-white sm:grid-cols-[82px_1fr] sm:items-center">
-            Teléfono
-            <input
-              type="tel"
-              placeholder="Tu teléfono"
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
-              className="rounded-sm border border-white/35 bg-black px-4 py-3 text-white outline-none placeholder:text-white/40 focus:border-white"
-            />
-          </label>
+              <input
+                id="home-booking-name"
+                name="name"
+                type="text"
+                value={form.name}
+                onChange={handleChange}
+                className="w-full rounded border border-zinc-600 bg-black px-4 py-3 text-sm font-semibold text-white outline-none transition focus:border-white"
+              />
+            </div>
 
-          <label className="grid gap-2 text-sm font-semibold text-white sm:grid-cols-[82px_1fr] sm:items-center">
-            Servicio
-            <select
-              value={selectedService}
-              onChange={(event) => setSelectedService(event.target.value)}
-              className="rounded-sm border border-white/35 bg-black px-4 py-3 text-white outline-none focus:border-white"
-            >
-              <option value="">Selecciona un servicio</option>
+            <div className="grid gap-3 sm:grid-cols-[100px_1fr] sm:items-center">
+              <label htmlFor="home-booking-phone" className="text-sm font-bold">
+                Teléfono
+              </label>
 
-              {services.map((service) => (
-                <option key={service.id} value={service.id}>
-                  {service.name} - {service.price}
-                </option>
-              ))}
-            </select>
-          </label>
+              <input
+                id="home-booking-phone"
+                name="phone"
+                type="tel"
+                value={form.phone}
+                onChange={handleChange}
+                className="w-full rounded border border-zinc-600 bg-black px-4 py-3 text-sm font-semibold text-white outline-none transition focus:border-white"
+              />
+            </div>
 
-          <label className="grid gap-2 text-sm font-semibold text-white sm:grid-cols-[82px_1fr] sm:items-center">
-            Fecha
-            <input
-              type="date"
-              value={date}
-              onChange={(event) => {
-                setDate(event.target.value);
-                setSelectedTime("");
-              }}
-              className="rounded-sm border border-white/35 bg-black px-4 py-3 text-white outline-none focus:border-white"
-            />
-          </label>
-        </div>
+            <div className="grid gap-3 sm:grid-cols-[100px_1fr] sm:items-center">
+              <label
+                htmlFor="home-booking-service"
+                className="text-sm font-bold"
+              >
+                Servicio
+              </label>
 
-        <div className="hidden bg-white/70 lg:block" />
+              <select
+                id="home-booking-service"
+                name="service"
+                value={form.service}
+                onChange={handleChange}
+                className="w-full rounded border border-zinc-600 bg-black px-4 py-3 text-sm font-semibold text-white outline-none transition focus:border-white"
+              >
+                <option value="">Selecciona un servicio</option>
 
-        <div>
-          <p className="mb-3 text-sm font-semibold text-white">
-            Selecciona una hora
-          </p>
+                {services.map((service, index) => {
+                  const label = getServiceLabel(service);
+                  const key = service.id || `${label}-${index}`;
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {availableTimes.map((slot) => {
-              const isBooked = date ? isTimeBooked(slot.time) : false;
-              const isSelected = selectedTime === slot.time;
-              const isDisabled = !date || isBooked || !slot.available;
+                  return (
+                    <option key={key} value={label}>
+                      {label}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
 
-              return (
-                <button
-                  key={slot.time}
-                  type="button"
-                  disabled={isDisabled}
-                  onClick={() => setSelectedTime(slot.time)}
-                  className={
-                    isBooked
-                      ? "cursor-not-allowed rounded-md border border-white/15 bg-zinc-900 px-3 py-3 text-sm font-semibold text-white/35"
-                      : isSelected
-                        ? "rounded-md border border-white bg-white px-3 py-3 text-sm font-black text-black"
-                        : "rounded-md border border-white/45 px-3 py-3 text-sm font-semibold text-white transition hover:bg-white hover:text-black disabled:cursor-not-allowed disabled:border-white/15 disabled:text-white/30 disabled:hover:bg-transparent disabled:hover:text-white/30"
-                  }
-                >
-                  {slot.time}
+            <div className="grid gap-3 sm:grid-cols-[100px_1fr] sm:items-center">
+              <label htmlFor="home-booking-date" className="text-sm font-bold">
+                Fecha
+              </label>
 
-                  {isBooked && <span className="block text-xs">Ocupado</span>}
-                </button>
-              );
-            })}
+              <input
+                id="home-booking-date"
+                name="date"
+                type="date"
+                min={today}
+                value={form.date}
+                onChange={handleChange}
+                className="w-full rounded border border-zinc-600 bg-black px-4 py-3 text-sm font-semibold text-white outline-none transition focus:border-white"
+              />
+            </div>
           </div>
 
-          <button
-            type="submit"
-            className="mt-5 inline-flex w-full items-center justify-center gap-3 rounded-md bg-white px-6 py-3 font-black text-black transition hover:bg-white/85"
+          <div className="border-zinc-600 lg:border-l lg:pl-7">
+            <p className="mb-4 text-sm font-bold">Selecciona una hora</p>
+
+            {!form.date ? (
+              <p className="rounded border border-zinc-700 px-4 py-3 text-sm text-zinc-400">
+                Primero selecciona una fecha.
+              </p>
+            ) : loadingTimes ? (
+              <p className="rounded border border-zinc-700 px-4 py-3 text-sm text-zinc-400">
+                Cargando horarios...
+              </p>
+            ) : (
+              <div className="grid grid-cols-3 gap-3">
+                {AVAILABLE_TIMES.map((time) => {
+                  const isBooked = bookedTimes.includes(time);
+                  const isSelected = form.time === time;
+
+                  return (
+                    <button
+                      key={time}
+                      type="button"
+                      disabled={isBooked}
+                      onClick={() => handleSelectTime(time)}
+                      className={[
+                        "rounded-md border px-3 py-3 text-sm font-bold transition",
+                        isBooked
+                          ? "cursor-not-allowed border-zinc-800 bg-zinc-900 text-zinc-600 line-through"
+                          : isSelected
+                            ? "border-white bg-white text-black"
+                            : "border-zinc-500 bg-black text-white hover:border-white",
+                      ].join(" ")}
+                    >
+                      {time}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {form.date && bookedTimes.length > 0 && (
+              <p className="mt-3 text-xs text-zinc-500">
+                Los horarios tachados ya están reservados.
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="mt-6 flex w-full items-center justify-center gap-3 rounded-md bg-white px-5 py-4 text-sm font-black text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
+            >
+              <span aria-hidden="true">▣</span>
+              {submitting ? "Reservando..." : "Confirmar cita"}
+            </button>
+          </div>
+        </div>
+
+        {message && (
+          <div
+            className={[
+              "mt-8 rounded border px-4 py-4 text-center text-sm font-semibold",
+              messageType === "success"
+                ? "border-emerald-700 bg-emerald-950/40 text-emerald-300"
+                : "border-red-700 bg-red-950/40 text-red-200",
+            ].join(" ")}
           >
-            <CalendarDays className="h-5 w-5" />
-            Confirmar cita
-          </button>
+            {message}
+          </div>
+        )}
+
+        <div className="mt-6 text-center text-xs text-zinc-500">
+          <p>🔒 Tu información solo se usará para confirmar tu reserva.</p>
+          <p className="mt-2">
+            La cita se guardará en el sistema interno de The New Spark.
+          </p>
         </div>
       </form>
-
-      {error && (
-        <p className="mt-5 rounded-md border border-red-400/50 bg-red-950/35 px-4 py-3 text-center text-sm text-red-200">
-          {error}
-        </p>
-      )}
-
-      {successMessage && (
-        <p className="mt-5 rounded-md border border-emerald-400/50 bg-emerald-950/35 px-4 py-3 text-center text-sm text-emerald-200">
-          {successMessage}
-        </p>
-      )}
-
-      {selectedTime && !error && (
-        <p className="mt-5 text-center text-sm font-semibold text-white">
-          Hora seleccionada: {selectedTime}
-        </p>
-      )}
-
-      <p className="mt-5 flex items-center justify-center gap-2 text-center text-xs text-white/45">
-        <Lock className="h-4 w-4" />
-        Tu información solo se usará para confirmar tu reserva.
-      </p>
-
-      <p className="mt-2 text-center text-xs text-white/35">
-        Modo demo: las citas ocupadas se guardan solo en este navegador.
-      </p>
     </section>
   );
 }

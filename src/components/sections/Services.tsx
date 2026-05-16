@@ -1,13 +1,11 @@
-import { Scissors, Smile, Sparkles } from "lucide-react";
-import { services } from "@/data/site";
+import { Clock, Scissors } from "lucide-react";
+import type { Service } from "@/data/catalog";
 
-const icons = {
-  corte: Scissors,
-  barba: Smile,
-  "corte-barba": Sparkles,
+type ServicesProps = {
+  services: Service[];
 };
 
-export function Services() {
+export function Services({ services }: ServicesProps) {
   return (
     <section
       id="servicios"
@@ -21,35 +19,40 @@ export function Services() {
         <div className="h-px flex-1 bg-white/60" />
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        {services.map((service) => {
-          const Icon = icons[service.id as keyof typeof icons] ?? Scissors;
+      <div className="grid gap-3">
+        {services.map((service) => (
+          <article
+            key={service.id}
+            className="rounded-md border border-white/60 p-4 transition hover:bg-white hover:text-black"
+          >
+            <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-start">
+              <div className="min-w-0">
+                <div className="flex items-center gap-3">
+                  <Scissors className="h-5 w-5 shrink-0" strokeWidth={1.6} />
 
-          return (
-            <article
-              key={service.id}
-              className="rounded-md border border-white/60 p-5 text-center transition hover:bg-white hover:text-black"
-            >
-              <div className="mx-auto flex h-20 items-center justify-center">
-                <Icon className="h-14 w-14" strokeWidth={1.4} />
+                  <h3 className="text-base font-black uppercase leading-tight tracking-tight sm:text-lg">
+                    {service.name}
+                  </h3>
+                </div>
+
+                <p className="mt-2 text-sm leading-tight opacity-80">
+                  {service.description}
+                </p>
               </div>
 
-              <h3 className="mt-2 text-2xl font-black uppercase tracking-tight">
-                {service.name}
-              </h3>
+              <div className="shrink-0 text-right">
+                <p className="text-2xl font-black tracking-wide">
+                  {service.price}
+                </p>
 
-              <p className="mt-2 min-h-12 text-sm leading-tight opacity-80">
-                {service.description}
-              </p>
-
-              <div className="mx-auto my-4 h-px w-24 bg-current opacity-45" />
-
-              <p className="text-3xl font-black tracking-wide">
-                {service.price}
-              </p>
-            </article>
-          );
-        })}
+                <p className="mt-1 inline-flex items-center justify-end gap-1 rounded-full border border-current px-2 py-1 text-[11px] font-black uppercase tracking-wide opacity-80">
+                  <Clock className="h-3 w-3" />
+                  {service.durationMinutes} min
+                </p>
+              </div>
+            </div>
+          </article>
+        ))}
       </div>
     </section>
   );
