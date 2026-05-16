@@ -30,19 +30,26 @@ create table if not exists appointments (
   customer_phone text not null,
   service_id uuid references services(id) on delete set null,
   service_name text not null,
-  service_price numeric(10, 2) not null,
-  service_duration_minutes integer not null,
+  service_price numeric(10, 2) not null default 0,
+  service_duration_minutes integer not null default 0,
   appointment_date date not null,
   appointment_time time not null,
   status text not null default 'pending' check (
-    status in ('pending', 'confirmed', 'completed', 'cancelled', 'no_show')
+    status in ('pending', 'confirmed', 'cancelled')
   ),
   notes text,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-
-  constraint appointments_unique_slot unique (appointment_date, appointment_time)
+  updated_at timestamptz not null default now()
 );
+
+drop index if exists appointments_unique_active_slot;
+
+alter table appointments
+  drop constraint if exists appointments_unique_slot;
+
+create unique index appointments_unique_active_slot
+  on appointments (appointment_date, appointment_time)
+  where status <> 'cancelled';
 
 create table if not exists loyalty_events (
   id uuid primary key default gen_random_uuid(),
@@ -82,24 +89,28 @@ end;
 $$;
 
 drop trigger if exists services_set_updated_at on services;
+
 create trigger services_set_updated_at
 before update on services
 for each row
 execute function set_updated_at();
 
 drop trigger if exists customers_set_updated_at on customers;
+
 create trigger customers_set_updated_at
 before update on customers
 for each row
 execute function set_updated_at();
 
 drop trigger if exists appointments_set_updated_at on appointments;
+
 create trigger appointments_set_updated_at
 before update on appointments
 for each row
 execute function set_updated_at();
 
 drop trigger if exists products_set_updated_at on products;
+
 create trigger products_set_updated_at
 before update on products
 for each row
@@ -112,12 +123,14 @@ alter table loyalty_events enable row level security;
 alter table products enable row level security;
 
 drop policy if exists "Servicios activos visibles publicamente" on services;
+
 create policy "Servicios activos visibles publicamente"
 on services
 for select
 using (active = true);
 
 drop policy if exists "Productos activos visibles publicamente" on products;
+
 create policy "Productos activos visibles publicamente"
 on products
 for select

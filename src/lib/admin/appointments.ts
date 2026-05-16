@@ -1,6 +1,4 @@
-import { randomUUID } from "crypto";
-import { promises as fs } from "fs";
-import path from "path";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const APPOINTMENT_STATUSES = [
   "pending",
@@ -30,12 +28,31 @@ export type CreateAppointmentInput = {
   status?: AppointmentStatus;
 };
 
-type RawAppointment = Partial<Omit<Appointment, "status">> & {
-  status?: string;
+type SupabaseAppointmentRow = {
+  id: string;
+  customer_name: string;
+  customer_phone: string;
+  service_name: string;
+  appointment_date: string;
+  appointment_time: string;
+  status: string;
+  created_at: string;
 };
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const APPOINTMENTS_FILE = path.join(DATA_DIR, "appointments.json");
+type SupabaseCustomerRow = {
+  id: string;
+};
+
+const APPOINTMENT_SELECT = `
+  id,
+  customer_name,
+  customer_phone,
+  service_name,
+  appointment_date,
+  appointment_time,
+  status,
+  created_at
+`;
 
 function isAppointmentStatus(value: unknown): value is AppointmentStatus {
   return (
@@ -44,170 +61,194 @@ function isAppointmentStatus(value: unknown): value is AppointmentStatus {
   );
 }
 
-function normalizeAppointment(
-  appointment: RawAppointment,
-  index: number
-): Appointment {
-  const fallbackId = `${appointment.date ?? "fecha"}-${
-    appointment.time ?? "hora"
-  }-${index}`;
+function normalizeTime(time: string) {
+  if (/^\d{2}:\d{2}:\d{2}$/.test(time)) {
+    return time.slice(0, 5);
+  }
+
+  return time;
+}
+
+function parseServiceDetails(serviceLabel: string) {
+  const priceMatch = serviceLabel.match(/(\d+(?:[,.]\d{1,2})?)\s*€/);
+  const durationMatch = serviceLabel.match(/(\d+)\s*min/i);
+
+  const servicePrice = priceMatch
+    ? Number(priceMatch[1].replace(",", "."))
+    : 0;
+
+  const serviceDurationMinutes = durationMatch
+    ? Number(durationMatch[1])
+    : 0;
 
   return {
-    id:
-      typeof appointment.id === "string" && appointment.id.trim()
-        ? appointment.id
-        : fallbackId,
-    name: typeof appointment.name === "string" ? appointment.name : "",
-    phone: typeof appointment.phone === "string" ? appointment.phone : "",
-    service: typeof appointment.service === "string" ? appointment.service : "",
-    date: typeof appointment.date === "string" ? appointment.date : "",
-    time: typeof appointment.time === "string" ? appointment.time : "",
-    status: isAppointmentStatus(appointment.status)
-      ? appointment.status
-      : "pending",
-    createdAt:
-      typeof appointment.createdAt === "string"
-        ? appointment.createdAt
-        : new Date().toISOString(),
+    servicePrice: Number.isFinite(servicePrice) ? servicePrice : 0,
+    serviceDurationMinutes: Number.isFinite(serviceDurationMinutes)
+      ? serviceDurationMinutes
+      : 0,
   };
 }
 
-async function ensureAppointmentsFile() {
-  await fs.mkdir(DATA_DIR, { recursive: true });
-
-  try {
-    await fs.access(APPOINTMENTS_FILE);
-  } catch {
-    await fs.writeFile(APPOINTMENTS_FILE, "[]", "utf8");
-  }
+function toAppointment(row: SupabaseAppointmentRow): Appointment {
+  return {
+    id: row.id,
+    name: row.customer_name,
+    phone: row.customer_phone,
+    service: row.service_name,
+    date: row.appointment_date,
+    time: normalizeTime(row.appointment_time),
+    status: isAppointmentStatus(row.status) ? row.status : "pending",
+    createdAt: row.created_at,
+  };
 }
 
-async function writeAppointments(appointments: Appointment[]) {
-  await ensureAppointmentsFile();
-
-  await fs.writeFile(
-    APPOINTMENTS_FILE,
-    JSON.stringify(appointments, null, 2),
-    "utf8"
+function isUniqueSlotError(error: { code?: string; message?: string }) {
+  return (
+    error.code === "23505" ||
+    Boolean(error.message?.toLowerCase().includes("unique"))
   );
+}
+
+async function upsertCustomer(input: CreateAppointmentInput) {
+  const supabase = createSupabaseAdminClient();
+
+  const { data, error } = await supabase
+    .from("customers")
+    .upsert(
+      {
+        full_name: input.name,
+        phone: input.phone,
+      },
+      {
+        onConflict: "phone",
+      }
+    )
+    .select("id")
+    .single<SupabaseCustomerRow>();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data.id;
 }
 
 export async function getAppointments(): Promise<Appointment[]> {
-  await ensureAppointmentsFile();
+  const supabase = createSupabaseAdminClient();
 
-  const fileContent = await fs.readFile(APPOINTMENTS_FILE, "utf8");
+  const { data, error } = await supabase
+    .from("appointments")
+    .select(APPOINTMENT_SELECT)
+    .order("appointment_date", { ascending: false })
+    .order("appointment_time", { ascending: false })
+    .order("created_at", { ascending: false })
+    .returns<SupabaseAppointmentRow[]>();
 
-  if (!fileContent.trim()) {
-    return [];
+  if (error) {
+    throw new Error(error.message);
   }
 
-  const parsed = JSON.parse(fileContent) as unknown;
-
-  if (!Array.isArray(parsed)) {
-    return [];
-  }
-
-  return parsed.map((appointment, index) =>
-    normalizeAppointment(appointment as RawAppointment, index)
-  );
+  return data.map(toAppointment);
 }
 
 export async function getAdminAppointments(): Promise<Appointment[]> {
-  const appointments = await getAppointments();
-
-  return appointments.sort((a, b) => {
-    const firstDate = `${a.date} ${a.time}`;
-    const secondDate = `${b.date} ${b.time}`;
-
-    return secondDate.localeCompare(firstDate);
-  });
+  return getAppointments();
 }
 
 export async function getBookedTimesByDate(date: string): Promise<string[]> {
-  const appointments = await getAppointments();
+  const supabase = createSupabaseAdminClient();
 
-  return appointments
-    .filter(
-      (appointment) =>
-        appointment.date === date && appointment.status !== "cancelled"
-    )
-    .map((appointment) => appointment.time);
+  const { data, error } = await supabase
+    .from("appointments")
+    .select("appointment_time")
+    .eq("appointment_date", date)
+    .neq("status", "cancelled")
+    .order("appointment_time", { ascending: true })
+    .returns<Array<{ appointment_time: string }>>();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data.map((appointment) => normalizeTime(appointment.appointment_time));
 }
 
 export async function createAppointment(
   input: CreateAppointmentInput
 ): Promise<Appointment> {
-  const appointments = await getAppointments();
+  const supabase = createSupabaseAdminClient();
 
-  const alreadyBooked = appointments.some(
-    (appointment) =>
-      appointment.date === input.date &&
-      appointment.time === input.time &&
-      appointment.status !== "cancelled"
+  const status = input.status ?? "pending";
+  const customerId = await upsertCustomer(input);
+
+  const { servicePrice, serviceDurationMinutes } = parseServiceDetails(
+    input.service
   );
 
-  if (alreadyBooked) {
-    throw new Error("Ese horario ya está reservado.");
+  const { data, error } = await supabase
+    .from("appointments")
+    .insert({
+      customer_id: customerId,
+      customer_name: input.name,
+      customer_phone: input.phone,
+      service_name: input.service,
+      service_price: servicePrice,
+      service_duration_minutes: serviceDurationMinutes,
+      appointment_date: input.date,
+      appointment_time: input.time,
+      status,
+    })
+    .select(APPOINTMENT_SELECT)
+    .single<SupabaseAppointmentRow>();
+
+  if (error) {
+    if (isUniqueSlotError(error)) {
+      throw new Error("Ese horario ya está reservado.");
+    }
+
+    throw new Error(error.message);
   }
 
-  const appointment: Appointment = {
-    id: randomUUID(),
-    name: input.name,
-    phone: input.phone,
-    service: input.service,
-    date: input.date,
-    time: input.time,
-    status: input.status ?? "pending",
-    createdAt: new Date().toISOString(),
-  };
-
-  appointments.push(appointment);
-
-  await writeAppointments(appointments);
-
-  return appointment;
+  return toAppointment(data);
 }
 
 export async function updateAppointmentStatus(
   appointmentId: string,
   status: AppointmentStatus
 ): Promise<Appointment> {
-  const appointments = await getAppointments();
+  const supabase = createSupabaseAdminClient();
 
-  const appointmentIndex = appointments.findIndex(
-    (appointment) => appointment.id === appointmentId
-  );
+  const { data, error } = await supabase
+    .from("appointments")
+    .update({ status })
+    .eq("id", appointmentId)
+    .select(APPOINTMENT_SELECT)
+    .single<SupabaseAppointmentRow>();
 
-  if (appointmentIndex === -1) {
-    throw new Error("No se encontró la cita.");
+  if (error) {
+    if (isUniqueSlotError(error)) {
+      throw new Error("Ese horario ya está reservado por otra cita activa.");
+    }
+
+    throw new Error(error.message);
   }
 
-  const updatedAppointment: Appointment = {
-    ...appointments[appointmentIndex],
-    status,
-  };
-
-  appointments[appointmentIndex] = updatedAppointment;
-
-  await writeAppointments(appointments);
-
-  return updatedAppointment;
+  return toAppointment(data);
 }
 
 export async function deleteAppointment(appointmentId: string): Promise<void> {
-  const appointments = await getAppointments();
+  const supabase = createSupabaseAdminClient();
 
-  const appointmentExists = appointments.some(
-    (appointment) => appointment.id === appointmentId
-  );
+  const { error, count } = await supabase
+    .from("appointments")
+    .delete({ count: "exact" })
+    .eq("id", appointmentId);
 
-  if (!appointmentExists) {
-    throw new Error("No se encontró la cita.");
+  if (error) {
+    throw new Error(error.message);
   }
 
-  const remainingAppointments = appointments.filter(
-    (appointment) => appointment.id !== appointmentId
-  );
-
-  await writeAppointments(remainingAppointments);
+  if (count === 0) {
+    throw new Error("No se encontró la cita.");
+  }
 }
