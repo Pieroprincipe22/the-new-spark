@@ -2,15 +2,24 @@ import { createHmac } from "crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-const ADMIN_COOKIE_NAME = "the_new_spark_admin_session";
+const ADMIN_COOKIE_NAME = "the_new_spark_panel_session";
+const PANEL_LOGIN_PATH = "/panel";
 
 function getAdminPassword() {
-  return process.env.ADMIN_PASSWORD || "NickAdmin2026";
+  const password = process.env.ADMIN_PASSWORD;
+
+  if (!password || !password.trim()) {
+    throw new Error(
+      "Falta ADMIN_PASSWORD en las variables de entorno. Añádela en .env.local."
+    );
+  }
+
+  return password.trim();
 }
 
 function getAdminSessionToken() {
   return createHmac("sha256", getAdminPassword())
-    .update("the-new-spark-admin-session")
+    .update("the-new-spark-panel-session")
     .digest("hex");
 }
 
@@ -25,7 +34,7 @@ export async function requireAdmin() {
   const isAuthenticated = await isAdminAuthenticated();
 
   if (!isAuthenticated) {
-    redirect("/admin");
+    redirect(PANEL_LOGIN_PATH);
   }
 }
 
