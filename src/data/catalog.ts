@@ -86,45 +86,33 @@ export const services: Service[] = [
 
 export const products: Product[] = [
   {
-    id: "cera-pelo",
-    name: "Cera para el pelo",
-    description: "Fijación y textura para mantener el peinado durante el día.",
-    price: "Consultar",
-    available: true,
-  },
-  {
     id: "polvo-peinar",
-    name: "Polvo de peinar",
-    description: "Volumen, textura y acabado natural para peinados modernos.",
+    name: "Nish Man Powder Styling P1",
+    description:
+      "Polvo de peinado ideal para dar volumen, textura y un acabado mate natural sin apelmazar el cabello.",
     price: "Consultar",
     available: true,
+    imageUrl: "/productos/nish-man-powder-styling-p1.webp.png",
+    imageAlt: "Nish Man Powder Styling P1",
   },
   {
-    id: "gel-fijador",
-    name: "Gel fijador",
-    description: "Fijación fuerte para estilos definidos y duraderos.",
+    id: "cera-pelo",
+    name: "Nish Man 03 Hair Styling Wax Flaming",
+    description:
+      "Cera de peinado para definir, moldear y mantener el estilo durante el día con un acabado marcado.",
     price: "Consultar",
     available: true,
+    imageUrl: "/productos/nish-man-03-wax-flaming.webp.png",
+    imageAlt: "Nish Man 03 Hair Styling Wax Flaming",
   },
   {
-    id: "espuma-barba",
-    name: "Espuma para barba",
-    description: "Producto para preparar el afeitado y cuidar la piel.",
+    id: "nish-man-08-wax-matte",
+    name: "Nish Man 08 Hair Styling Wax Matte",
+    description:
+      "Cera mate para conseguir un peinado natural, definido y sin brillo excesivo.",
     price: "Consultar",
     available: true,
-  },
-  {
-    id: "aceite-barba",
-    name: "Aceite para barba",
-    description: "Hidratación, brillo y suavidad para barba y piel.",
-    price: "Consultar",
-    available: true,
-  },
-  {
-    id: "after-shave",
-    name: "After shave",
-    description: "Cuidado posterior al afeitado para calmar y refrescar la piel.",
-    price: "Consultar",
-    available: true,
+    imageUrl: "/productos/nish-man-08-wax-matte.webp.png",
+    imageAlt: "Nish Man 08 Hair Styling Wax Matte",
   },
 ];
