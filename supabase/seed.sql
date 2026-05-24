@@ -2,12 +2,12 @@ insert into services (slug, name, description, price, duration_minutes, sort_ord
 values
   ('corte-clasico', 'Corte clásico', 'Corte tradicional limpio, rápido y adaptado al estilo del cliente.', 8.00, 30, 1),
   ('corte-jubilado', 'Corte jubilado', 'Servicio especial para jubilados con acabado cuidado y profesional.', 8.00, 30, 2),
-  ('degradado-moderno', 'Degradado moderno', 'Degradado actual con acabado definido y estilo moderno.', 12.00, 40, 3),
-  ('degradado-diseno-elaborado', 'Degradado + diseño elaborado', 'Degradado con diseño personalizado y detalle trabajado.', 14.00, 50, 4),
-  ('degradado-arreglo-barba', 'Degradado + arreglo de barba', 'Corte degradado acompañado de arreglo completo de barba.', 16.00, 60, 5),
-  ('degradado-perfilado-barba', 'Degradado + perfilado de barba', 'Degradado con perfilado de barba para definir contornos y líneas.', 13.50, 50, 6),
+  ('degradado-moderno', 'Degradado moderno', 'Degradado actual con acabado definido y estilo moderno.', 12.00, 30, 3),
+  ('degradado-diseno-elaborado', 'Degradado + diseño elaborado', 'Degradado con diseño personalizado y detalle trabajado.', 14.00, 35, 4),
+  ('degradado-arreglo-barba', 'Degradado + arreglo de barba', 'Corte degradado acompañado de arreglo completo de barba.', 16.00, 40, 5),
+  ('degradado-perfilado-barba', 'Degradado + perfilado de barba', 'Degradado con perfilado de barba para definir contornos y líneas.', 13.50, 35, 6),
   ('cejas-navaja', 'Cejas con navaja', 'Limpieza y definición de cejas con acabado preciso.', 3.00, 10, 7),
-  ('barba-completa', 'Barba completa', 'Arreglo completo de barba con perfilado y acabado limpio.', 7.00, 25, 8)
+  ('barba-completa', 'Barba completa', 'Arreglo completo de barba con perfilado y acabado limpio.', 7.00, 20, 8)
 on conflict (slug) do update set
   name = excluded.name,
   description = excluded.description,

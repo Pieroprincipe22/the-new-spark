@@ -40,7 +40,7 @@ export const services: Service[] = [
     description: "Degradado actual con acabado definido y estilo moderno.",
     price: "12,00 €",
     priceNumber: 12,
-    durationMinutes: 40,
+    durationMinutes: 30,
   },
   {
     id: "degradado-diseno-elaborado",
@@ -48,7 +48,7 @@ export const services: Service[] = [
     description: "Degradado con diseño personalizado y detalle trabajado.",
     price: "14,00 €",
     priceNumber: 14,
-    durationMinutes: 50,
+    durationMinutes: 35,
   },
   {
     id: "degradado-arreglo-barba",
@@ -56,7 +56,7 @@ export const services: Service[] = [
     description: "Corte degradado acompañado de arreglo completo de barba.",
     price: "16,00 €",
     priceNumber: 16,
-    durationMinutes: 60,
+    durationMinutes: 40,
   },
   {
     id: "degradado-perfilado-barba",
@@ -64,7 +64,7 @@ export const services: Service[] = [
     description: "Degradado con perfilado de barba para definir contornos y líneas.",
     price: "13,50 €",
     priceNumber: 13.5,
-    durationMinutes: 50,
+    durationMinutes: 35,
   },
   {
     id: "cejas-navaja",
@@ -80,7 +80,7 @@ export const services: Service[] = [
     description: "Arreglo completo de barba con perfilado y acabado limpio.",
     price: "7,00 €",
     priceNumber: 7,
-    durationMinutes: 25,
+    durationMinutes: 20,
   },
 ];
 

@@ -4,10 +4,9 @@ export const siteConfig = {
   instagram: "https://www.instagram.com/nthenewspark?igsh=NzZwdGNrY3c3aXV5",
   instagramHandle: "@nthenewspark",
 
-  // Número actual usado para las pruebas con WhatsApp.
-  // Cuando Nick confirme el número final del negocio, se cambia aquí.
-  whatsappNumber: "+34662230482",
-  displayPhone: "+34 662 230 482",
+  // Número oficial del cliente para WhatsApp.
+  whatsappNumber: "+34624541595",
+  displayPhone: "+34 624 54 15 95",
 
   address: "Dirección pendiente",
 
