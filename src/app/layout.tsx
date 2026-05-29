@@ -5,7 +5,7 @@ import { Footer } from "@/components/layout/Footer";
 import { siteConfig } from "@/data/site";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://the-new-spark.es"),
+  metadataBase: new URL("https://www.the-new-spark.es"),
 
   title: `${siteConfig.name} | Barbería y reservas online`,
   description: siteConfig.description,
