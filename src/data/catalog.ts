@@ -92,7 +92,7 @@ export const products: Product[] = [
       "Polvo de peinado ideal para dar volumen, textura y un acabado mate natural sin apelmazar el cabello.",
     price: "Consultar",
     available: true,
-    imageUrl: "/productos/nish-man-powder-styling-p1.webp.png",
+    imageUrl: "/productos/nish-man-powder-styling-p1.webp", // ✅ corregido
     imageAlt: "Nish Man Powder Styling P1",
   },
   {
@@ -102,7 +102,7 @@ export const products: Product[] = [
       "Cera de peinado para definir, moldear y mantener el estilo durante el día con un acabado marcado.",
     price: "Consultar",
     available: true,
-    imageUrl: "/productos/nish-man-03-wax-flaming.webp.png",
+    imageUrl: "/productos/nish-man-03-wax-flaming.webp", // ✅ corregido
     imageAlt: "Nish Man 03 Hair Styling Wax Flaming",
   },
   {
@@ -112,7 +112,7 @@ export const products: Product[] = [
       "Cera mate para conseguir un peinado natural, definido y sin brillo excesivo.",
     price: "Consultar",
     available: true,
-    imageUrl: "/productos/nish-man-08-wax-matte.webp.png",
+    imageUrl: "/productos/nish-man-08-wax-matte.webp", // ✅ corregido
     imageAlt: "Nish Man 08 Hair Styling Wax Matte",
   },
 ];

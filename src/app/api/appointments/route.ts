@@ -3,18 +3,22 @@ import {
   createAppointment,
   getBookedTimesByDate,
 } from "@/lib/admin/appointments";
+import { checkRateLimit, LIMITS } from "@/lib/rateLimit";
+import {
+  createAppointmentSchema,
+  getAvailabilitySchema,
+  formatZodErrors,
+} from "@/lib/validation";
 
 type AppointmentRequestBody = Record<string, unknown>;
 
 function getStringValue(body: AppointmentRequestBody, keys: string[]) {
   for (const key of keys) {
     const value = body[key];
-
     if (typeof value === "string" && value.trim()) {
       return value.trim();
     }
   }
-
   return "";
 }
 
@@ -59,23 +63,53 @@ async function readRequestBody(
   }
 }
 
+function getClientIp(request: Request): string {
+  return (
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    request.headers.get("x-real-ip") ??
+    "unknown"
+  );
+}
+
 export async function GET(request: Request) {
+  // ── Rate limiting ──────────────────────────────────────────────────────────
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(ip, LIMITS.getAvailability);
+
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Demasiadas solicitudes. Espera un momento." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
+        },
+      }
+    );
+  }
+  // ──────────────────────────────────────────────────────────────────────────
+
   try {
     const { searchParams } = new URL(request.url);
     const rawDate = searchParams.get("date");
 
-    if (!rawDate) {
+    // ── Validación con Zod ─────────────────────────────────────────────────
+    const parsed = getAvailabilitySchema.safeParse({
+      date: rawDate ? normalizeDate(rawDate) : rawDate,
+    });
+
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "La fecha es obligatoria." },
+        { error: formatZodErrors(parsed.error) },
         { status: 400 }
       );
     }
+    // ────────────────────────────────────────────────────────────────────────
 
-    const date = normalizeDate(rawDate);
-    const bookedTimes = await getBookedTimesByDate(date);
+    const bookedTimes = await getBookedTimesByDate(parsed.data.date);
 
     return NextResponse.json({
-      date,
+      date: parsed.data.date,
       bookedTimes,
     });
   } catch {
@@ -87,75 +121,60 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  // ── Rate limiting ──────────────────────────────────────────────────────────
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(ip, LIMITS.createAppointment);
+
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Has hecho demasiadas reservas seguidas. Espera unos minutos." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
+        },
+      }
+    );
+  }
+  // ──────────────────────────────────────────────────────────────────────────
+
   try {
     const body = await readRequestBody(request);
 
-    const name = getStringValue(body, [
-      "name",
-      "nombre",
-      "customerName",
-      "clientName",
-      "fullName",
-    ]);
+    // ── Extraer campos (compatible con los keys que envía BookingForm) ───────
+    const rawInput = {
+      name: getStringValue(body, [
+        "name", "nombre", "customerName", "clientName", "fullName",
+      ]),
+      phone: getStringValue(body, [
+        "phone", "telefono", "tel", "customerPhone", "clientPhone",
+      ]),
+      service: getStringValue(body, [
+        "service", "servicio", "serviceName", "selectedService",
+      ]),
+      date: normalizeDate(
+        getStringValue(body, [
+          "date", "fecha", "selectedDate", "appointmentDate",
+        ])
+      ),
+      time: getStringValue(body, [
+        "time", "hora", "selectedTime", "selectedHour",
+        "appointmentTime", "hour",
+      ]),
+    };
 
-    const phone = getStringValue(body, [
-      "phone",
-      "telefono",
-      "tel",
-      "customerPhone",
-      "clientPhone",
-    ]);
+    // ── Validación con Zod ───────────────────────────────────────────────────
+    const parsed = createAppointmentSchema.safeParse(rawInput);
 
-    const service = getStringValue(body, [
-      "service",
-      "servicio",
-      "serviceName",
-      "selectedService",
-    ]);
-
-    const rawDate = getStringValue(body, [
-      "date",
-      "fecha",
-      "selectedDate",
-      "appointmentDate",
-    ]);
-
-    const time = getStringValue(body, [
-      "time",
-      "hora",
-      "selectedTime",
-      "selectedHour",
-      "appointmentTime",
-      "hour",
-    ]);
-
-    const date = normalizeDate(rawDate);
-
-    const missingFields = [
-      !name ? "nombre" : "",
-      !phone ? "teléfono" : "",
-      !service ? "servicio" : "",
-      !date ? "fecha" : "",
-      !time ? "hora" : "",
-    ].filter(Boolean);
-
-    if (missingFields.length > 0) {
+    if (!parsed.success) {
       return NextResponse.json(
-        {
-          error: `Faltan campos: ${missingFields.join(", ")}.`,
-          receivedKeys: Object.keys(body),
-        },
+        { error: formatZodErrors(parsed.error) },
         { status: 400 }
       );
     }
+    // ────────────────────────────────────────────────────────────────────────
 
-    const appointment = await createAppointment({
-      name,
-      phone,
-      service,
-      date,
-      time,
-    });
+    const appointment = await createAppointment(parsed.data);
 
     return NextResponse.json(
       {

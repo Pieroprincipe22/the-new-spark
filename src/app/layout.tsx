@@ -5,8 +5,28 @@ import { Footer } from "@/components/layout/Footer";
 import { siteConfig } from "@/data/site";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://the-new-spark.es"),
+
   title: `${siteConfig.name} | Barbería y reservas online`,
   description: siteConfig.description,
+
+  alternates: {
+    canonical: "/",
+  },
+
+  robots: {
+    index: true,
+    follow: true,
+  },
+
+  openGraph: {
+    title: `${siteConfig.name} | Barbería y reservas online`,
+    description: siteConfig.description,
+    url: "/",
+    siteName: siteConfig.name,
+    locale: "es_ES",
+    type: "website",
+  },
 };
 
 export default function RootLayout({

@@ -20,8 +20,8 @@ export function ProductsSection({ products }: ProductsSectionProps) {
         </div>
 
         <p className="mx-auto mb-6 max-w-2xl text-center text-sm leading-relaxed text-white/70">
-          Productos para el cuidado masculino, peinado, barba y acabado diario.
-          Próximamente se añadirán fotos reales y precios confirmados.
+          Productos profesionales para el cuidado masculino, peinado, barba y acabado diario.
+            Consulta en tienda cuál se adapta mejor a tu estilo y tipo de cabello.
         </p>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
