@@ -1,12 +1,15 @@
-import { createHmac } from "crypto";
+import "server-only";
+
+import { createHmac, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 const ADMIN_COOKIE_NAME = "the_new_spark_panel_session";
 const PANEL_LOGIN_PATH = "/panel";
 
-// ── Protección brute force ─────────────────────────────────────────────────
-// Máx 5 intentos fallidos → bloqueo de 15 minutos
+const SESSION_DURATION_SECONDS = 60 * 60 * 8;
+
+// Máx. 5 intentos fallidos por IP → bloqueo temporal de 15 minutos.
 const MAX_ATTEMPTS = 5;
 const BLOCK_DURATION_MS = 15 * 60 * 1000;
 
@@ -15,72 +18,131 @@ type LoginAttemptEntry = {
   blockedUntil: number | null;
 };
 
+export type LoginAdminResult =
+  | {
+      success: true;
+      blocked: false;
+    }
+  | {
+      success: false;
+      blocked: true;
+      remainingSeconds: number;
+    }
+  | {
+      success: false;
+      blocked: false;
+      attemptsLeft: number;
+    };
+
 const loginAttempts = new Map<string, LoginAttemptEntry>();
 
-function getAttemptEntry(ip: string): LoginAttemptEntry {
-  return loginAttempts.get(ip) ?? { count: 0, blockedUntil: null };
+function getOptionalEnv(name: string) {
+  const value = process.env[name];
+
+  if (!value || !value.trim()) {
+    return null;
+  }
+
+  return value.trim();
 }
 
-export function isIpBlocked(ip: string): boolean {
-  const entry = getAttemptEntry(ip);
+function getRequiredEnv(name: string) {
+  const value = getOptionalEnv(name);
 
-  if (entry.blockedUntil === null) return false;
+  if (!value) {
+    throw new Error(
+      `Falta ${name} en las variables de entorno. Añádela en .env.local.`
+    );
+  }
 
-  // Si el bloqueo ya expiró → limpiar
-  if (Date.now() > entry.blockedUntil) {
-    loginAttempts.delete(ip);
+  return value;
+}
+
+function getAdminUser() {
+  return getRequiredEnv("ADMIN_USER");
+}
+
+function getAdminPassword() {
+  return getRequiredEnv("ADMIN_PASSWORD");
+}
+
+function getAdminSessionToken(password = getAdminPassword()) {
+  return createHmac("sha256", password)
+    .update("the-new-spark-panel-session")
+    .digest("hex");
+}
+
+function safeCompare(left: string, right: string) {
+  const leftBuffer = Buffer.from(left);
+  const rightBuffer = Buffer.from(right);
+
+  if (leftBuffer.length !== rightBuffer.length) {
     return false;
   }
 
-  return true;
+  return timingSafeEqual(leftBuffer, rightBuffer);
 }
 
-export function getRemainingBlockSeconds(ip: string): number {
+function getAttemptEntry(ip: string): LoginAttemptEntry {
+  const entry = loginAttempts.get(ip);
+
+  if (!entry) {
+    return { count: 0, blockedUntil: null };
+  }
+
+  if (entry.blockedUntil && Date.now() > entry.blockedUntil) {
+    loginAttempts.delete(ip);
+    return { count: 0, blockedUntil: null };
+  }
+
+  return entry;
+}
+
+export function isIpBlocked(ip: string) {
   const entry = getAttemptEntry(ip);
-  if (!entry.blockedUntil) return 0;
-  return Math.ceil((entry.blockedUntil - Date.now()) / 1000);
+  return Boolean(entry.blockedUntil && Date.now() <= entry.blockedUntil);
 }
 
-function recordFailedAttempt(ip: string): void {
+export function getRemainingBlockSeconds(ip: string) {
+  const entry = getAttemptEntry(ip);
+
+  if (!entry.blockedUntil) {
+    return 0;
+  }
+
+  return Math.max(0, Math.ceil((entry.blockedUntil - Date.now()) / 1000));
+}
+
+function recordFailedAttempt(ip: string) {
   const entry = getAttemptEntry(ip);
   const newCount = entry.count + 1;
 
   loginAttempts.set(ip, {
     count: newCount,
-    blockedUntil: newCount >= MAX_ATTEMPTS
-      ? Date.now() + BLOCK_DURATION_MS
-      : null,
+    blockedUntil:
+      newCount >= MAX_ATTEMPTS ? Date.now() + BLOCK_DURATION_MS : null,
   });
 }
 
-function resetAttempts(ip: string): void {
+function resetAttempts(ip: string) {
   loginAttempts.delete(ip);
-}
-// ──────────────────────────────────────────────────────────────────────────
-
-function getAdminPassword() {
-  const password = process.env.ADMIN_PASSWORD;
-
-  if (!password || !password.trim()) {
-    throw new Error(
-      "Falta ADMIN_PASSWORD en las variables de entorno. Añádela en .env.local."
-    );
-  }
-
-  return password.trim();
-}
-
-function getAdminSessionToken() {
-  return createHmac("sha256", getAdminPassword())
-    .update("the-new-spark-panel-session")
-    .digest("hex");
 }
 
 export async function isAdminAuthenticated() {
+  const adminPassword = getOptionalEnv("ADMIN_PASSWORD");
+
+  if (!adminPassword) {
+    return false;
+  }
+
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get(ADMIN_COOKIE_NAME);
+  const expectedSessionToken = getAdminSessionToken(adminPassword);
 
-  return sessionCookie?.value === getAdminSessionToken();
+  return Boolean(
+    sessionCookie?.value &&
+      safeCompare(sessionCookie.value, expectedSessionToken)
+  );
 }
 
 export async function requireAdmin() {
@@ -91,46 +153,69 @@ export async function requireAdmin() {
   }
 }
 
-// ip es obligatorio ahora — viene desde la Server Action del panel
-export async function loginAdmin(password: string, ip: string) {
-  // ── Comprobar bloqueo ────────────────────────────────────────────────────
-  if (isIpBlocked(ip)) {
-    return { success: false, blocked: true, remainingSeconds: getRemainingBlockSeconds(ip) };
-  }
-  // ────────────────────────────────────────────────────────────────────────
+export async function loginAdmin(
+  username: string,
+  password: string,
+  ip: string
+): Promise<LoginAdminResult> {
+  const cleanIp = ip.trim() || "unknown";
 
+  if (isIpBlocked(cleanIp)) {
+    return {
+      success: false,
+      blocked: true,
+      remainingSeconds: getRemainingBlockSeconds(cleanIp),
+    };
+  }
+
+  const adminUser = getAdminUser();
+  const adminPassword = getAdminPassword();
+
+  const cleanUsername = username.trim();
   const cleanPassword = password.trim();
 
-  if (cleanPassword !== getAdminPassword()) {
-    recordFailedAttempt(ip);
+  const validUsername = safeCompare(cleanUsername, adminUser);
+  const validPassword = safeCompare(cleanPassword, adminPassword);
 
-    const entry = getAttemptEntry(ip);
-    const attemptsLeft = MAX_ATTEMPTS - entry.count;
+  if (!validUsername || !validPassword) {
+    recordFailedAttempt(cleanIp);
+
+    const entry = getAttemptEntry(cleanIp);
+    const attemptsLeft = Math.max(0, MAX_ATTEMPTS - entry.count);
 
     return {
       success: false,
       blocked: false,
-      attemptsLeft: Math.max(0, attemptsLeft),
+      attemptsLeft,
     };
   }
 
-  // Login correcto → limpiar intentos fallidos
-  resetAttempts(ip);
+  resetAttempts(cleanIp);
 
   const cookieStore = await cookies();
 
-  cookieStore.set(ADMIN_COOKIE_NAME, getAdminSessionToken(), {
+  cookieStore.set(ADMIN_COOKIE_NAME, getAdminSessionToken(adminPassword), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 60 * 60 * 8,
+    maxAge: SESSION_DURATION_SECONDS,
   });
 
-  return { success: true, blocked: false };
+  return {
+    success: true,
+    blocked: false,
+  };
 }
 
 export async function logoutAdmin() {
   const cookieStore = await cookies();
-  cookieStore.delete(ADMIN_COOKIE_NAME);
+
+  cookieStore.set(ADMIN_COOKIE_NAME, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 0,
+  });
 }

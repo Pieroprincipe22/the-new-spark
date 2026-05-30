@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { DeleteAppointmentForm } from "@/components/admin/DeleteAppointmentForm";
@@ -11,6 +10,7 @@ import {
   type Appointment,
   type AppointmentStatus,
 } from "@/lib/admin/appointments";
+import { logoutAdmin, requireAdmin } from "@/lib/admin/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -32,22 +32,10 @@ const statusClasses: Record<AppointmentStatus, string> = {
   cancelled: "border-red-800 bg-red-950/40 text-red-300",
 };
 
-async function requirePanelAdmin() {
-  const cookieStore = await cookies();
-  const session = cookieStore.get("admin_session")?.value;
-
-  if (
-    !process.env.ADMIN_SESSION_TOKEN ||
-    session !== process.env.ADMIN_SESSION_TOKEN
-  ) {
-    redirect("/panel");
-  }
-}
-
 async function updateStatusAction(formData: FormData) {
   "use server";
 
-  await requirePanelAdmin();
+  await requireAdmin();
 
   const appointmentId = formData.get("appointmentId");
   const status = formData.get("status");
@@ -75,7 +63,7 @@ async function updateStatusAction(formData: FormData) {
 async function deleteAppointmentAction(formData: FormData) {
   "use server";
 
-  await requirePanelAdmin();
+  await requireAdmin();
 
   const appointmentId = formData.get("appointmentId");
 
@@ -94,16 +82,7 @@ async function deleteAppointmentAction(formData: FormData) {
 async function logoutAction() {
   "use server";
 
-  const cookieStore = await cookies();
-
-  cookieStore.set("admin_session", "", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 0,
-  });
-
+  await logoutAdmin();
   redirect("/panel");
 }
 
@@ -421,7 +400,7 @@ function SearchBox({
 export default async function PanelCitasPage({
   searchParams,
 }: PanelCitasPageProps) {
-  await requirePanelAdmin();
+  await requireAdmin();
 
   const params = searchParams ? await searchParams : {};
   const query = typeof params.q === "string" ? params.q.trim() : "";

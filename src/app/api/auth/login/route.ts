@@ -1,44 +1,72 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
+import { loginAdmin } from "@/lib/admin/auth";
+
+function getClientIp(headerList: Headers) {
+  const forwardedFor = headerList.get("x-forwarded-for");
+
+  if (forwardedFor) {
+    return forwardedFor.split(",")[0]?.trim() || "unknown";
+  }
+
+  return (
+    headerList.get("x-real-ip") ||
+    headerList.get("cf-connecting-ip") ||
+    "unknown"
+  );
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const { usuario, password } = await request.json();
+    const body = await request.json();
 
-    const adminUser = process.env.ADMIN_USER;
-    const adminPassword = process.env.ADMIN_PASSWORD;
-    const sessionToken = process.env.ADMIN_SESSION_TOKEN;
+    const usuario = typeof body?.usuario === "string" ? body.usuario : "";
+    const password = typeof body?.password === "string" ? body.password : "";
 
-    if (!adminUser || !adminPassword || !sessionToken) {
+    if (!usuario.trim() || !password.trim()) {
       return NextResponse.json(
-        { ok: false, message: 'Configuración de autenticación incompleta.' },
-        { status: 500 }
+        {
+          ok: false,
+          message: "Usuario y contraseña son obligatorios.",
+        },
+        { status: 400 }
       );
     }
 
-    if (usuario !== adminUser || password !== adminPassword) {
+    const result = await loginAdmin(usuario, password, getClientIp(request.headers));
+
+    if (result.success) {
+      return NextResponse.json({
+        ok: true,
+        message: "Acceso concedido.",
+      });
+    }
+
+    if (result.blocked) {
       return NextResponse.json(
-        { ok: false, message: 'Usuario o contraseña incorrectos.' },
-        { status: 401 }
+        {
+          ok: false,
+          message: "Demasiados intentos fallidos. Inténtalo más tarde.",
+          remainingSeconds: result.remainingSeconds,
+        },
+        { status: 429 }
       );
     }
 
-    const response = NextResponse.json({
-      ok: true,
-      message: 'Acceso concedido.',
-    });
-
-    response.cookies.set('admin_session', sessionToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 8,
-    });
-
-    return response;
+    return NextResponse.json(
+      {
+        ok: false,
+        message: "Usuario o contraseña incorrectos.",
+        attemptsLeft: result.attemptsLeft,
+      },
+      { status: 401 }
+    );
   } catch {
     return NextResponse.json(
-      { ok: false, message: 'No se pudo iniciar sesión.' },
+      {
+        ok: false,
+        message:
+          "No se pudo iniciar sesión. Revisa ADMIN_USER y ADMIN_PASSWORD en .env.local.",
+      },
       { status: 500 }
     );
   }

@@ -1,14 +1,23 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import {
+  isAdminAuthenticated,
+  loginAdmin,
+  logoutAdmin,
+} from "@/lib/admin/auth";
 
-async function isAuthenticated() {
-  const cookieStore = await cookies();
-  const session = cookieStore.get("admin_session")?.value;
+function getClientIp(headerList: Headers) {
+  const forwardedFor = headerList.get("x-forwarded-for");
 
-  return Boolean(
-    process.env.ADMIN_SESSION_TOKEN &&
-      session === process.env.ADMIN_SESSION_TOKEN
+  if (forwardedFor) {
+    return forwardedFor.split(",")[0]?.trim() || "unknown";
+  }
+
+  return (
+    headerList.get("x-real-ip") ||
+    headerList.get("cf-connecting-ip") ||
+    "unknown"
   );
 }
 
@@ -18,57 +27,49 @@ async function loginAction(formData: FormData) {
   const usuario = String(formData.get("usuario") || "").trim();
   const password = String(formData.get("password") || "").trim();
 
-  const adminUser = process.env.ADMIN_USER;
-  const adminPassword = process.env.ADMIN_PASSWORD;
-  const sessionToken = process.env.ADMIN_SESSION_TOKEN;
+  const headerList = await headers();
+  const ip = getClientIp(headerList);
 
-  if (!adminUser || !adminPassword || !sessionToken) {
+  let result: Awaited<ReturnType<typeof loginAdmin>>;
+
+  try {
+    result = await loginAdmin(usuario, password, ip);
+  } catch {
     redirect("/panel?error=config");
   }
 
-  if (usuario !== adminUser || password !== adminPassword) {
-    redirect("/panel?error=1");
+  if (result.success) {
+    redirect("/panel/citas");
   }
 
-  const cookieStore = await cookies();
+  if (result.blocked) {
+    redirect(`/panel?error=blocked&seconds=${result.remainingSeconds ?? 0}`);
+  }
 
-  cookieStore.set("admin_session", sessionToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 8,
-  });
-
-  redirect("/panel/citas");
+  redirect(`/panel?error=1&attempts=${result.attemptsLeft ?? 0}`);
 }
 
 async function logoutAction() {
   "use server";
 
-  const cookieStore = await cookies();
-
-  cookieStore.set("admin_session", "", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 0,
-  });
-
+  await logoutAdmin();
   redirect("/panel");
 }
 
 type PanelPageProps = {
   searchParams?: Promise<{
     error?: string;
+    attempts?: string;
+    seconds?: string;
   }>;
 };
 
 export default async function PanelPage({ searchParams }: PanelPageProps) {
-  const authenticated = await isAuthenticated();
+  const authenticated = await isAdminAuthenticated();
   const params = searchParams ? await searchParams : {};
   const error = params?.error;
+  const attemptsLeft = Number(params?.attempts ?? 0);
+  const blockSeconds = Number(params?.seconds ?? 0);
 
   if (authenticated) {
     return (
@@ -154,8 +155,8 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
           </h1>
 
           <p className="mb-8 text-center text-sm leading-6 text-white/60">
-            Introduce el usuario y la contraseña para gestionar las citas de
-            The New Spark.
+            Introduce el usuario y la contraseña para gestionar las citas de The
+            New Spark.
           </p>
 
           <div className="mb-5">
@@ -198,13 +199,22 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
           {error === "1" && (
             <p className="mb-5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-300">
               Usuario o contraseña incorrectos.
+              {attemptsLeft > 0
+                ? ` Te quedan ${attemptsLeft} intentos antes del bloqueo temporal.`
+                : ""}
+            </p>
+          )}
+
+          {error === "blocked" && (
+            <p className="mb-5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-200">
+              Demasiados intentos fallidos. Vuelve a intentarlo en
+              aproximadamente {Math.max(1, Math.ceil(blockSeconds / 60))} min.
             </p>
           )}
 
           {error === "config" && (
             <p className="mb-5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-300">
-              Falta configurar ADMIN_USER, ADMIN_PASSWORD o ADMIN_SESSION_TOKEN
-              en .env.local.
+              Falta configurar ADMIN_USER o ADMIN_PASSWORD en .env.local.
             </p>
           )}
 
