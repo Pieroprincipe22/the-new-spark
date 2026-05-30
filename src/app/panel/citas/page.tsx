@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { DeleteAppointmentForm } from "@/components/admin/DeleteAppointmentForm";
-import { logoutAdmin, requireAdmin } from "@/lib/admin/auth";
 import {
   deleteAppointment,
   getAdminAppointments,
@@ -32,8 +32,22 @@ const statusClasses: Record<AppointmentStatus, string> = {
   cancelled: "border-red-800 bg-red-950/40 text-red-300",
 };
 
+async function requirePanelAdmin() {
+  const cookieStore = await cookies();
+  const session = cookieStore.get("admin_session")?.value;
+
+  if (
+    !process.env.ADMIN_SESSION_TOKEN ||
+    session !== process.env.ADMIN_SESSION_TOKEN
+  ) {
+    redirect("/panel");
+  }
+}
+
 async function updateStatusAction(formData: FormData) {
   "use server";
+
+  await requirePanelAdmin();
 
   const appointmentId = formData.get("appointmentId");
   const status = formData.get("status");
@@ -61,6 +75,8 @@ async function updateStatusAction(formData: FormData) {
 async function deleteAppointmentAction(formData: FormData) {
   "use server";
 
+  await requirePanelAdmin();
+
   const appointmentId = formData.get("appointmentId");
 
   if (typeof appointmentId !== "string" || !appointmentId.trim()) {
@@ -78,7 +94,15 @@ async function deleteAppointmentAction(formData: FormData) {
 async function logoutAction() {
   "use server";
 
-  await logoutAdmin();
+  const cookieStore = await cookies();
+
+  cookieStore.set("admin_session", "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0,
+  });
 
   redirect("/panel");
 }
@@ -397,7 +421,7 @@ function SearchBox({
 export default async function PanelCitasPage({
   searchParams,
 }: PanelCitasPageProps) {
-  await requireAdmin();
+  await requirePanelAdmin();
 
   const params = searchParams ? await searchParams : {};
   const query = typeof params.q === "string" ? params.q.trim() : "";
@@ -430,6 +454,13 @@ export default async function PanelCitasPage({
               className="rounded-full border border-zinc-700 px-5 py-3 text-sm font-semibold text-white transition hover:border-white"
             >
               Ver formulario de reserva
+            </Link>
+
+            <Link
+              href="/panel"
+              className="rounded-full border border-zinc-700 px-5 py-3 text-sm font-semibold text-white transition hover:border-white"
+            >
+              Volver al panel
             </Link>
 
             <LogoutButton />

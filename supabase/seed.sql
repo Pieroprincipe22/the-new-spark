@@ -1,12 +1,12 @@
-insert into services (slug, name, description, price, duration_minutes, sort_order)
+﻿insert into services (slug, name, description, price, duration_minutes, sort_order)
 values
-  ('corte-clasico', 'Corte clásico', 'Corte tradicional limpio, rápido y adaptado al estilo del cliente.', 8.00, 30, 1),
+  ('corte-clasico', 'Corte clÃ¡sico', 'Corte tradicional limpio, rÃ¡pido y adaptado al estilo del cliente.', 8.00, 30, 1),
   ('corte-jubilado', 'Corte jubilado', 'Servicio especial para jubilados con acabado cuidado y profesional.', 8.00, 30, 2),
   ('degradado-moderno', 'Degradado moderno', 'Degradado actual con acabado definido y estilo moderno.', 12.00, 30, 3),
-  ('degradado-diseno-elaborado', 'Degradado + diseño elaborado', 'Degradado con diseño personalizado y detalle trabajado.', 14.00, 35, 4),
-  ('degradado-arreglo-barba', 'Degradado + arreglo de barba', 'Corte degradado acompañado de arreglo completo de barba.', 16.00, 40, 5),
-  ('degradado-perfilado-barba', 'Degradado con perfilado de barba para definir contornos y líneas.', 'Degradado con perfilado de barba para definir contornos y líneas.', 13.50, 35, 6),
-  ('cejas-navaja', 'Cejas con navaja', 'Limpieza y definición de cejas con acabado preciso.', 3.00, 10, 7),
+  ('degradado-diseno-elaborado', 'Degradado + diseÃ±o elaborado', 'Degradado con diseÃ±o personalizado y detalle trabajado.', 14.00, 35, 4),
+  ('degradado-arreglo-barba', 'Degradado + arreglo de barba', 'Corte degradado acompaÃ±ado de arreglo completo de barba.', 16.00, 40, 5),
+  ('degradado-perfilado-barba', 'Degradado con perfilado de barba para definir contornos y lÃ­neas.', 'Degradado con perfilado de barba para definir contornos y lÃ­neas.', 13.50, 35, 6),
+  ('cejas-navaja', 'Cejas con navaja', 'Limpieza y definiciÃ³n de cejas con acabado preciso.', 3.00, 10, 7),
   ('barba-completa', 'Barba completa', 'Arreglo completo de barba con perfilado y acabado limpio.', 7.00, 20, 8)
 on conflict (slug) do update set
   name = excluded.name,
@@ -34,17 +34,17 @@ values
     'Consultar',
     1,
     true,
-    '/productos/nish-man-powder-styling-p1.webp.png',
+    '/productos/nish-man-powder-styling-p1.webp',
     1
   ),
   (
     'cera-pelo',
     'Nish Man 03 Hair Styling Wax Flaming',
-    'Cera de peinado para definir, moldear y mantener el estilo durante el día con un acabado marcado.',
+    'Cera de peinado para definir, moldear y mantener el estilo durante el dÃ­a con un acabado marcado.',
     'Consultar',
     1,
     true,
-    '/productos/nish-man-03-wax-flaming.webp.png',
+    '/productos/nish-man-03-wax-flaming.webp',
     2
   ),
   (
@@ -54,7 +54,7 @@ values
     'Consultar',
     1,
     true,
-    '/productos/nish-man-08-wax-matte.webp.png',
+    '/productos/nish-man-08-wax-matte.webp',
     3
   )
 on conflict (slug) do update set
