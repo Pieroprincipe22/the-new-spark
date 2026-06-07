@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const crypto = require("node:crypto");
 
 const password = process.env.ADMIN_PANEL_PASSWORD;

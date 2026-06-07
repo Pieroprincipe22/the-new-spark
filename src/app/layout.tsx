@@ -1,24 +1,24 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Header } from "@/components/layout/Header";
+import Header from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { siteConfig } from "@/data/site";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.the-new-spark.es"),
-
-  title: `${siteConfig.name} | Barbería y reservas online`,
+  title: {
+    default: `${siteConfig.name} | Barbería y reservas online`,
+    template: `%s | ${siteConfig.name}`,
+  },
   description: siteConfig.description,
-
+  applicationName: siteConfig.name,
   alternates: {
     canonical: "/",
   },
-
   robots: {
     index: true,
     follow: true,
   },
-
   openGraph: {
     title: `${siteConfig.name} | Barbería y reservas online`,
     description: siteConfig.description,

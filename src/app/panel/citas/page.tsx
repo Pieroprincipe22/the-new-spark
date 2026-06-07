@@ -55,7 +55,7 @@ async function updateStatusAction(formData: FormData) {
   await updateAppointmentStatus(appointmentId, status);
 
   revalidatePath("/panel/citas");
-  revalidatePath("/admin/citas");
+  revalidatePath("/panel/inicio");
   revalidatePath("/reservar");
   revalidatePath("/");
 }
@@ -74,7 +74,7 @@ async function deleteAppointmentAction(formData: FormData) {
   await deleteAppointment(appointmentId);
 
   revalidatePath("/panel/citas");
-  revalidatePath("/admin/citas");
+  revalidatePath("/panel/inicio");
   revalidatePath("/reservar");
   revalidatePath("/");
 }
@@ -436,11 +436,11 @@ export default async function PanelCitasPage({
             </Link>
 
             <Link
-              href="/panel"
-              className="rounded-full border border-zinc-700 px-5 py-3 text-sm font-semibold text-white transition hover:border-white"
-            >
-              Volver al panel
-            </Link>
+  href="/panel/inicio"
+  className="rounded-full border border-zinc-700 px-5 py-3 text-sm font-semibold text-white transition hover:border-white"
+>
+  Volver al panel
+</Link>
 
             <LogoutButton />
           </div>

@@ -7,7 +7,9 @@ export function ContactSection() {
     <section id="contacto" className="mx-auto max-w-7xl px-5 pb-8 lg:px-8">
       <div className="grid gap-6 border border-white/70 px-6 py-5 md:grid-cols-3 md:divide-x md:divide-white/60">
         <a
-          href={createWhatsappLink("Hola, quiero reservar una cita.")}
+          href={createWhatsappLink(
+            "Hola, quiero contactar con The New Spark."
+          )}
           target="_blank"
           rel="noreferrer"
           className="flex items-center gap-5 transition hover:opacity-75 md:pr-8"
@@ -22,7 +24,7 @@ export function ContactSection() {
               WhatsApp
             </h3>
             <p className="text-white/85">{siteConfig.displayPhone}</p>
-            <p className="text-white/75">Escríbenos y agenda tu cita</p>
+            <p className="text-white/75">Reservas y consultas</p>
           </div>
         </a>
 
@@ -42,7 +44,7 @@ export function ContactSection() {
               Instagram
             </h3>
             <p className="text-white/85">{siteConfig.instagramHandle}</p>
-            <p className="text-white/75">Síguenos para ver más estilos</p>
+            <p className="text-white/75">Cortes, estilos y novedades</p>
           </div>
         </a>
 

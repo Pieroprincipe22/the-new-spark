@@ -4,11 +4,30 @@ import { Menu } from "lucide-react";
 import { siteConfig } from "@/data/site";
 
 const navItems = [
-  { label: "Inicio", href: "/#inicio" },
-  { label: "Servicios", href: "/#servicios" },
-  { label: "Reservar cita", href: "/#reserva" },
-  { label: "Productos", href: "/#productos" },
-  { label: "Contacto", href: "/#contacto" },
+  {
+    label: "Inicio",
+    href: "/#inicio",
+  },
+  {
+    label: "Servicios",
+    href: "/#servicios",
+  },
+  {
+    label: "Productos",
+    href: "/#productos",
+  },
+  {
+    label: "Promoción",
+    href: "/promociones",
+  },
+  {
+    label: "Reservas",
+    href: "/#reserva",
+  },
+  {
+    label: "Contacto",
+    href: "/#contacto",
+  },
 ];
 
 export function Header() {
@@ -57,3 +76,5 @@ export function Header() {
     </header>
   );
 }
+
+export default Header;

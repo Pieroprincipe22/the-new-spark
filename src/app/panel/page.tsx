@@ -1,11 +1,6 @@
-import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import {
-  isAdminAuthenticated,
-  loginAdmin,
-  logoutAdmin,
-} from "@/lib/admin/auth";
+import { loginAdmin } from "@/lib/admin/auth";
 
 function getClientIp(headerList: Headers) {
   const forwardedFor = headerList.get("x-forwarded-for");
@@ -39,7 +34,7 @@ async function loginAction(formData: FormData) {
   }
 
   if (result.success) {
-    redirect("/panel/citas");
+    redirect("/panel/inicio");
   }
 
   if (result.blocked) {
@@ -47,13 +42,6 @@ async function loginAction(formData: FormData) {
   }
 
   redirect(`/panel?error=1&attempts=${result.attemptsLeft ?? 0}`);
-}
-
-async function logoutAction() {
-  "use server";
-
-  await logoutAdmin();
-  redirect("/panel");
 }
 
 type PanelPageProps = {
@@ -65,79 +53,10 @@ type PanelPageProps = {
 };
 
 export default async function PanelPage({ searchParams }: PanelPageProps) {
-  const authenticated = await isAdminAuthenticated();
   const params = searchParams ? await searchParams : {};
   const error = params?.error;
   const attemptsLeft = Number(params?.attempts ?? 0);
   const blockSeconds = Number(params?.seconds ?? 0);
-
-  if (authenticated) {
-    return (
-      <main className="min-h-screen bg-black px-6 py-16 text-white">
-        <section className="mx-auto max-w-5xl">
-          <div className="mb-10 flex flex-col gap-5 border-b border-white/15 pb-8 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="mb-3 text-xs uppercase tracking-[0.4em] text-white/50">
-                Panel privado
-              </p>
-
-              <h1 className="text-4xl font-black uppercase md:text-5xl">
-                Administración
-              </h1>
-
-              <p className="mt-4 max-w-2xl text-white/65">
-                Gestiona las citas, revisa reservas y administra el contenido
-                interno de The New Spark.
-              </p>
-            </div>
-
-            <form action={logoutAction}>
-              <button
-                type="submit"
-                className="rounded-xl border border-white/20 px-5 py-3 text-sm font-bold uppercase tracking-[0.18em] text-white transition hover:bg-white hover:text-black"
-              >
-                Cerrar sesión
-              </button>
-            </form>
-          </div>
-
-          <div className="grid gap-5 md:grid-cols-2">
-            <Link
-              href="/panel/citas"
-              className="block rounded-2xl border border-white/15 bg-white/3 p-6 transition hover:border-white/40 hover:bg-white/6"
-            >
-              <p className="mb-3 text-xs uppercase tracking-[0.35em] text-white/45">
-                Reservas
-              </p>
-
-              <h2 className="mb-3 text-2xl font-black uppercase">
-                Gestionar citas
-              </h2>
-
-              <p className="text-sm leading-6 text-white/60">
-                Consulta, revisa y organiza las citas recibidas desde la web.
-              </p>
-            </Link>
-
-            <div className="rounded-2xl border border-white/10 bg-white/2 p-6 opacity-70">
-              <p className="mb-3 text-xs uppercase tracking-[0.35em] text-white/45">
-                Próximamente
-              </p>
-
-              <h2 className="mb-3 text-2xl font-black uppercase">
-                Clientes y fidelidad
-              </h2>
-
-              <p className="text-sm leading-6 text-white/60">
-                Aquí podremos gestionar clientes, teléfonos y sellos de
-                fidelidad digital.
-              </p>
-            </div>
-          </div>
-        </section>
-      </main>
-    );
-  }
 
   return (
     <main className="min-h-screen bg-black px-6 py-16 text-white">
@@ -147,15 +66,15 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
           className="w-full rounded-3xl border border-white/15 bg-white/3 p-8 shadow-2xl"
         >
           <p className="mb-4 text-center text-xs uppercase tracking-[0.45em] text-white/50">
-            Panel privado
+            Acceso privado
           </p>
 
           <h1 className="mb-4 text-center text-3xl font-black uppercase">
-            Acceso al panel
+            Iniciar sesión
           </h1>
 
           <p className="mb-8 text-center text-sm leading-6 text-white/60">
-            Introduce el usuario y la contraseña para gestionar las citas de The
+            Introduce tus datos de acceso para entrar al panel interno de The
             New Spark.
           </p>
 
@@ -171,7 +90,6 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
               id="usuario"
               name="usuario"
               type="text"
-              defaultValue="Nick"
               required
               autoComplete="username"
               className="w-full rounded-xl border border-white/15 bg-slate-800 px-4 py-3 text-white outline-none transition focus:border-white/50"
@@ -214,7 +132,8 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
 
           {error === "config" && (
             <p className="mb-5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-300">
-              Falta configurar ADMIN_USER o ADMIN_PASSWORD en .env.local.
+              Falta configurar ADMIN_USER, ADMIN_PASSWORD_HASH o
+              ADMIN_SESSION_SECRET en .env.local.
             </p>
           )}
 

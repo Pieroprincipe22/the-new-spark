@@ -1,6 +1,7 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import type { ChangeEvent, FormEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export type BookingService = {
   id?: string;
@@ -39,10 +40,27 @@ type VisibleMonth = {
 };
 
 const AVAILABLE_TIMES = [
-  "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-  "12:00", "12:30", "13:00", "13:30", "14:00", "14:30",
-  "15:00", "15:30", "16:00", "16:30", "17:00", "17:30",
-  "18:00", "18:30", "19:00",
+  "09:00",
+  "09:30",
+  "10:00",
+  "10:30",
+  "11:00",
+  "11:30",
+  "12:00",
+  "12:30",
+  "13:00",
+  "13:30",
+  "14:00",
+  "14:30",
+  "15:00",
+  "15:30",
+  "16:00",
+  "16:30",
+  "17:00",
+  "17:30",
+  "18:00",
+  "18:30",
+  "19:00",
 ];
 
 const WEEK_DAYS = ["L", "M", "X", "J", "V", "S", "D"];
@@ -65,6 +83,7 @@ function createDateValue(year: number, monthIndex: number, day: number) {
 
 function getTodayValue() {
   const date = new Date();
+
   return createDateValue(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
@@ -72,17 +91,31 @@ function formatPrice(price: BookingService["price"]) {
   if (typeof price === "number") {
     return `${price.toFixed(2).replace(".", ",")} €`;
   }
+
   if (typeof price === "string" && price.trim()) {
     return price;
   }
+
   return "";
 }
 
 function formatDuration(service: BookingService) {
-  if (typeof service.duration === "number") return `${service.duration} min`;
-  if (typeof service.duration === "string" && service.duration.trim()) return service.duration;
-  if (typeof service.durationMinutes === "number") return `${service.durationMinutes} min`;
-  if (typeof service.minutes === "number") return `${service.minutes} min`;
+  if (typeof service.duration === "number") {
+    return `${service.duration} min`;
+  }
+
+  if (typeof service.duration === "string" && service.duration.trim()) {
+    return service.duration;
+  }
+
+  if (typeof service.durationMinutes === "number") {
+    return `${service.durationMinutes} min`;
+  }
+
+  if (typeof service.minutes === "number") {
+    return `${service.minutes} min`;
+  }
+
   return "";
 }
 
@@ -94,6 +127,7 @@ function getServiceLabel(service: BookingService) {
   const name = getServiceName(service);
   const price = formatPrice(service.price);
   const duration = formatDuration(service);
+
   return [name, price, duration].filter(Boolean).join(" - ");
 }
 
@@ -106,7 +140,11 @@ function getMonthLabel(year: number, monthIndex: number) {
 
 function getReadableDate(dateValue: string) {
   const [year, month, day] = dateValue.split("-").map(Number);
-  if (!year || !month || !day) return "";
+
+  if (!year || !month || !day) {
+    return "";
+  }
+
   return new Intl.DateTimeFormat("es-ES", {
     weekday: "long",
     day: "2-digit",
@@ -127,6 +165,7 @@ function getCalendarDays(year: number, monthIndex: number) {
 
   const monthDays = Array.from({ length: daysInMonth }, (_, index) => {
     const day = index + 1;
+
     return {
       type: "day" as const,
       key: createDateValue(year, monthIndex, day),
@@ -140,12 +179,20 @@ function getCalendarDays(year: number, monthIndex: number) {
 
 function getPreviousMonth(month: VisibleMonth): VisibleMonth {
   const date = new Date(month.year, month.monthIndex - 1, 1);
-  return { year: date.getFullYear(), monthIndex: date.getMonth() };
+
+  return {
+    year: date.getFullYear(),
+    monthIndex: date.getMonth(),
+  };
 }
 
 function getNextMonth(month: VisibleMonth): VisibleMonth {
   const date = new Date(month.year, month.monthIndex + 1, 1);
-  return { year: date.getFullYear(), monthIndex: date.getMonth() };
+
+  return {
+    year: date.getFullYear(),
+    monthIndex: date.getMonth(),
+  };
 }
 
 function getMonthKey(month: VisibleMonth) {
@@ -163,12 +210,21 @@ function BookingCalendar({
 }) {
   const [visibleMonth, setVisibleMonth] = useState<VisibleMonth>(() => {
     const now = new Date();
-    return { year: now.getFullYear(), monthIndex: now.getMonth() };
+
+    return {
+      year: now.getFullYear(),
+      monthIndex: now.getMonth(),
+    };
   });
 
   const todayDate = useMemo(() => {
     const [year, month, day] = today.split("-").map(Number);
-    return { year, monthIndex: month - 1, day };
+
+    return {
+      year,
+      monthIndex: month - 1,
+      day,
+    };
   }, [today]);
 
   const todayMonthKey = getMonthKey({
@@ -178,7 +234,11 @@ function BookingCalendar({
 
   const visibleMonthKey = getMonthKey(visibleMonth);
   const canGoToPreviousMonth = visibleMonthKey > todayMonthKey;
-  const calendarDays = getCalendarDays(visibleMonth.year, visibleMonth.monthIndex);
+
+  const calendarDays = getCalendarDays(
+    visibleMonth.year,
+    visibleMonth.monthIndex
+  );
 
   return (
     <div className="rounded-xl border border-zinc-700 bg-black p-4">
@@ -209,7 +269,10 @@ function BookingCalendar({
 
       <div className="mb-2 grid grid-cols-7 gap-2">
         {WEEK_DAYS.map((day) => (
-          <div key={day} className="text-center text-xs font-black text-zinc-500">
+          <div
+            key={day}
+            className="text-center text-xs font-black text-zinc-500"
+          >
             {day}
           </div>
         ))}
@@ -274,7 +337,9 @@ export function BookingForm({
   const today = useMemo(() => getTodayValue(), []);
 
   useEffect(() => {
-    if (!form.date) return;
+    if (!form.date) {
+      return;
+    }
 
     const controller = new AbortController();
 
@@ -283,16 +348,23 @@ export function BookingForm({
     })
       .then(async (response) => {
         const data = (await response.json()) as BookedTimesResponse;
+
         if (!response.ok) {
-          throw new Error(data.error || "No se pudieron cargar los horarios ocupados.");
+          throw new Error(
+            data.error || "No se pudieron cargar los horarios ocupados."
+          );
         }
+
         return data;
       })
       .then((data) => {
         setBookedTimes(Array.isArray(data.bookedTimes) ? data.bookedTimes : []);
       })
       .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
         console.error(error);
         setBookedTimes([]);
         setMessage("No se pudieron cargar los horarios ocupados.");
@@ -309,9 +381,15 @@ export function BookingForm({
     };
   }, [form.date]);
 
-  const handleChange = (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    event: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = event.target;
-    setForm((current) => ({ ...current, [name]: value }));
+
+    setForm((current) => ({
+      ...current,
+      [name]: value,
+    }));
   };
 
   const handleSelectDate = (date: string) => {
@@ -319,13 +397,22 @@ export function BookingForm({
     setLoadingTimes(true);
     setMessage("");
     setMessageType("");
-    setForm((current) => ({ ...current, date, time: "" }));
+
+    setForm((current) => ({
+      ...current,
+      date,
+      time: "",
+    }));
   };
 
   const handleSelectTime = (time: string) => {
     setMessage("");
     setMessageType("");
-    setForm((current) => ({ ...current, time }));
+
+    setForm((current) => ({
+      ...current,
+      time,
+    }));
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -348,7 +435,13 @@ export function BookingForm({
       time: form.time.trim(),
     };
 
-    if (!cleanForm.name || !cleanForm.phone || !cleanForm.service || !cleanForm.date || !cleanForm.time) {
+    if (
+      !cleanForm.name ||
+      !cleanForm.phone ||
+      !cleanForm.service ||
+      !cleanForm.date ||
+      !cleanForm.time
+    ) {
       setMessage("Todos los campos son obligatorios.");
       setMessageType("error");
       return;
@@ -365,7 +458,9 @@ export function BookingForm({
 
       const response = await fetch("/api/appointments", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           name: cleanForm.name,
           phone: cleanForm.phone,
@@ -375,7 +470,10 @@ export function BookingForm({
         }),
       });
 
-      const data = (await response.json()) as { message?: string; error?: string };
+      const data = (await response.json()) as {
+        message?: string;
+        error?: string;
+      };
 
       if (!response.ok) {
         throw new Error(data.error || "No se pudo guardar la cita.");
@@ -385,12 +483,13 @@ export function BookingForm({
         current.includes(cleanForm.time) ? current : [...current, cleanForm.time]
       );
 
-      setMessage("Cita reservada correctamente.");
+      setMessage(data.message || "Cita guardada correctamente.");
       setMessageType("success");
       setForm({ ...initialForm, date: cleanForm.date });
       setGdprAccepted(false);
     } catch (error) {
       console.error(error);
+
       setMessage(
         error instanceof Error ? error.message : "No se pudo guardar la cita."
       );
@@ -416,13 +515,15 @@ export function BookingForm({
       : "grid gap-3 sm:grid-cols-[100px_1fr] sm:items-center";
 
   return (
-    <section id="reservar" className={sectionClassName}>
+    <section id="reserva" className={sectionClassName}>
       <div className="mb-8">
         <div className="flex items-center gap-4">
           <div className="h-px flex-1 bg-zinc-500" />
+
           <h1 className="text-center text-3xl font-black uppercase tracking-tight sm:text-4xl">
             {title}
           </h1>
+
           <div className="h-px flex-1 bg-zinc-500" />
         </div>
 
@@ -440,12 +541,14 @@ export function BookingForm({
               <label htmlFor="booking-name" className="text-sm font-bold">
                 Nombre
               </label>
+
               <input
                 id="booking-name"
                 name="name"
                 type="text"
                 value={form.name}
                 onChange={handleChange}
+                autoComplete="name"
                 className="w-full rounded border border-zinc-600 bg-black px-4 py-3 text-sm font-semibold text-white outline-none transition focus:border-white"
               />
             </div>
@@ -454,12 +557,14 @@ export function BookingForm({
               <label htmlFor="booking-phone" className="text-sm font-bold">
                 Teléfono
               </label>
+
               <input
                 id="booking-phone"
                 name="phone"
                 type="tel"
                 value={form.phone}
                 onChange={handleChange}
+                autoComplete="tel"
                 className="w-full rounded border border-zinc-600 bg-black px-4 py-3 text-sm font-semibold text-white outline-none transition focus:border-white"
               />
             </div>
@@ -468,6 +573,7 @@ export function BookingForm({
               <label htmlFor="booking-service" className="text-sm font-bold">
                 Servicio
               </label>
+
               <select
                 id="booking-service"
                 name="service"
@@ -476,9 +582,11 @@ export function BookingForm({
                 className="w-full rounded border border-zinc-600 bg-black px-4 py-3 text-sm font-semibold text-white outline-none transition focus:border-white"
               >
                 <option value="">Selecciona un servicio</option>
+
                 {services.map((service, index) => {
                   const label = getServiceLabel(service);
                   const key = service.id || `${label}-${index}`;
+
                   return (
                     <option key={key} value={label}>
                       {label}
@@ -490,6 +598,7 @@ export function BookingForm({
 
             <div>
               <p className="mb-3 text-sm font-bold">Fecha</p>
+
               <BookingCalendar
                 selectedDate={form.date}
                 today={today}
@@ -548,24 +657,29 @@ export function BookingForm({
                 <input
                   type="checkbox"
                   checked={gdprAccepted}
-                  onChange={(e) => {
-                    setGdprAccepted(e.target.checked);
-                    if (e.target.checked) setGdprError(false);
+                  onChange={(event) => {
+                    setGdprAccepted(event.target.checked);
+
+                    if (event.target.checked) {
+                      setGdprError(false);
+                    }
                   }}
                   className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-white"
                 />
+
                 <span className="text-xs leading-5 text-zinc-400">
-                  He leído y acepto el uso de mis datos personales (nombre y
-                  teléfono) exclusivamente para gestionar mi reserva en The New
+                  He leído y acepto el uso de mis datos personales, nombre y
+                  teléfono, exclusivamente para gestionar mi reserva en The New
                   Spark, conforme al{" "}
                   <a
-                   href="/privacidad"
+                    href="/privacidad"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-white underline underline-offset-2 hover:text-zinc-300">
-                  
+                    className="text-white underline underline-offset-2 hover:text-zinc-300"
+                  >
                     Aviso de Privacidad
-                    </a>             .
+                  </a>
+                  .
                 </span>
               </label>
 
@@ -601,7 +715,7 @@ export function BookingForm({
         )}
 
         <div className="mt-6 text-center text-xs text-zinc-500">
-          <p>🔒 Tu información solo se usará para confirmar tu reserva.</p>
+          <p>Tu información solo se usará para confirmar tu reserva.</p>
           <p className="mt-2">
             La cita se guardará en el sistema interno de The New Spark.
           </p>

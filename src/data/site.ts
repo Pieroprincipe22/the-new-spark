@@ -1,14 +1,12 @@
 export const siteConfig = {
   name: "The New Spark",
-  description: "Cortes modernos, atención profesional y reservas fáciles.",
+  description:
+    "Barbería con cortes modernos, atención profesional, productos de cuidado masculino y reservas online.",
   instagram: "https://www.instagram.com/nthenewspark?igsh=NzZwdGNrY3c3aXV5",
   instagramHandle: "@nthenewspark",
 
-  // Número oficial del cliente para WhatsApp.
   whatsappNumber: "+34624541595",
   displayPhone: "+34 624 54 15 95",
-
-  address: "Dirección pendiente",
 
   hours: {
     weekdays: "Lunes a Viernes: 09:00 - 19:00",
