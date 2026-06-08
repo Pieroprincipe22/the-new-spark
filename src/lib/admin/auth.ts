@@ -6,7 +6,6 @@ import { redirect } from "next/navigation";
 
 const ADMIN_COOKIE_NAME = "the_new_spark_panel_session";
 const PANEL_LOGIN_PATH = "/panel";
-const SESSION_DURATION_SECONDS = 60 * 60 * 8;
 const MAX_ATTEMPTS = 5;
 const BLOCK_DURATION_MS = 15 * 60 * 1000;
 
