@@ -1,11 +1,12 @@
 import "server-only";
 
-import { createHmac, scryptSync, timingSafeEqual } from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 const ADMIN_COOKIE_NAME = "the_new_spark_panel_session";
 const PANEL_LOGIN_PATH = "/panel";
+const SESSION_DURATION_SECONDS = 60 * 60 * 8;
 const MAX_ATTEMPTS = 5;
 const BLOCK_DURATION_MS = 15 * 60 * 1000;
 
@@ -15,88 +16,26 @@ type LoginAttemptEntry = {
 };
 
 export type LoginAdminResult =
-  | {
-      success: true;
-      blocked: false;
-      sessionToken: string;
-    }
-  | {
-      success: false;
-      blocked: true;
-      remainingSeconds: number;
-    }
-  | {
-      success: false;
-      blocked: false;
-      attemptsLeft: number;
-    };
+  | { success: true; blocked: false; sessionToken: string }
+  | { success: false; blocked: true; remainingSeconds: number }
+  | { success: false; blocked: false; attemptsLeft: number };
 
 const loginAttempts = new Map<string, LoginAttemptEntry>();
 
-function getOptionalEnv(name: string) {
-  const value = process.env[name];
-  if (!value || !value.trim()) return null;
-  return value.trim();
+function safeCompare(a: string, b: string): boolean {
+  const ba = Buffer.from(a);
+  const bb = Buffer.from(b);
+  if (ba.length !== bb.length) return false;
+  return timingSafeEqual(ba, bb);
 }
 
-function getRequiredEnv(name: string) {
-  const value = getOptionalEnv(name);
-  if (!value) throw new Error(`Falta ${name} en las variables de entorno.`);
-  return value;
-}
-
-function getAdminUser() {
-  return getRequiredEnv("ADMIN_USER");
-}
-
-function getAdminPasswordHash() {
-  return getOptionalEnv("ADMIN_PASSWORD_HASH");
-}
-
-function getAdminPassword() {
-  return getOptionalEnv("ADMIN_PASSWORD");
-}
-
-function getAdminSessionSecret() {
-  return getRequiredEnv("ADMIN_SESSION_SECRET");
-}
-
-function safeCompare(left: string, right: string) {
-  const leftBuffer = Buffer.from(left);
-  const rightBuffer = Buffer.from(right);
-  if (leftBuffer.length !== rightBuffer.length) return false;
-  return timingSafeEqual(leftBuffer, rightBuffer);
-}
-
-function verifyPasswordHash(password: string, storedPasswordHash: string) {
-  const [salt, storedHash] = storedPasswordHash.split(":");
-  if (!salt || !storedHash) return false;
-  if (!/^[a-f0-9]+$/i.test(storedHash)) return false;
-  try {
-    const storedHashBuffer = Buffer.from(storedHash, "hex");
-    const derivedHashBuffer = scryptSync(password, salt, storedHashBuffer.length);
-    if (derivedHashBuffer.length !== storedHashBuffer.length) return false;
-    return timingSafeEqual(derivedHashBuffer, storedHashBuffer);
-  } catch {
-    return false;
-  }
-}
-
-function verifyPassword(password: string) {
-  const passwordHash = getAdminPasswordHash();
-  const plainPassword = getAdminPassword();
-  if (passwordHash && verifyPasswordHash(password, passwordHash)) return true;
-  if (plainPassword && safeCompare(password, plainPassword)) return true;
-  return false;
-}
-
-function getAdminSessionToken() {
-  const adminUser = getAdminUser();
-  const passwordHash = getAdminPasswordHash() ?? "";
-  const plainPassword = getAdminPassword() ?? "";
-  const sessionSecret = getAdminSessionSecret();
-  const fingerprint = `${adminUser}:${passwordHash}:${plainPassword}:the-new-spark-panel-session`;
-  return createHmac("sha256", sessionSecret).update(fingerprint).digest("hex");
+function getAdminSessionToken(): string {
+  const secret = process.env.ADMIN_SESSION_SECRET ?? "";
+  const user = process.env.ADMIN_USER ?? "";
+  // Fingerprint simple — solo user + secret, sin contraseña
+  return createHmac("sha256", secret)
+    .update(`${user}:the-new-spark-session`)
+    .digest("hex");
 }
 
 function getAttemptEntry(ip: string): LoginAttemptEntry {
@@ -109,18 +48,18 @@ function getAttemptEntry(ip: string): LoginAttemptEntry {
   return entry;
 }
 
-export function isIpBlocked(ip: string) {
+export function isIpBlocked(ip: string): boolean {
   const entry = getAttemptEntry(ip);
   return Boolean(entry.blockedUntil && Date.now() <= entry.blockedUntil);
 }
 
-export function getRemainingBlockSeconds(ip: string) {
+export function getRemainingBlockSeconds(ip: string): number {
   const entry = getAttemptEntry(ip);
   if (!entry.blockedUntil) return 0;
   return Math.max(0, Math.ceil((entry.blockedUntil - Date.now()) / 1000));
 }
 
-function recordFailedAttempt(ip: string) {
+function recordFailedAttempt(ip: string): void {
   const entry = getAttemptEntry(ip);
   const newCount = entry.count + 1;
   loginAttempts.set(ip, {
@@ -129,24 +68,23 @@ function recordFailedAttempt(ip: string) {
   });
 }
 
-function resetAttempts(ip: string) {
+function resetAttempts(ip: string): void {
   loginAttempts.delete(ip);
 }
 
-export async function isAdminAuthenticated() {
-  const adminUser = getOptionalEnv("ADMIN_USER");
-  const passwordHash = getOptionalEnv("ADMIN_PASSWORD_HASH");
-  const plainPassword = getOptionalEnv("ADMIN_PASSWORD");
-  const sessionSecret = getOptionalEnv("ADMIN_SESSION_SECRET");
-  if (!adminUser || !sessionSecret || (!passwordHash && !plainPassword)) return false;
+export async function isAdminAuthenticated(): Promise<boolean> {
+  const secret = process.env.ADMIN_SESSION_SECRET;
+  const user = process.env.ADMIN_USER;
+  if (!secret || !user) return false;
+
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get(ADMIN_COOKIE_NAME);
-  return Boolean(
-    sessionCookie?.value && safeCompare(sessionCookie.value, getAdminSessionToken())
-  );
+  if (!sessionCookie?.value) return false;
+
+  return safeCompare(sessionCookie.value, getAdminSessionToken());
 }
 
-export async function requireAdmin() {
+export async function requireAdmin(): Promise<void> {
   const isAuthenticated = await isAdminAuthenticated();
   if (!isAuthenticated) redirect(PANEL_LOGIN_PATH);
 }
@@ -166,23 +104,24 @@ export async function loginAdmin(
     };
   }
 
-  const adminUser = getAdminUser();
-  const cleanUsername = username.trim();
-  const cleanPassword = password.trim();
+  const adminUser = process.env.ADMIN_USER ?? "";
+  const adminPassword = process.env.ADMIN_PASSWORD ?? "";
 
-  const validUsername = safeCompare(cleanUsername, adminUser);
-  const validPassword = verifyPassword(cleanPassword);
+  const validUser = safeCompare(username.trim(), adminUser);
+  const validPass = safeCompare(password.trim(), adminPassword);
 
-  if (!validUsername || !validPassword) {
+  if (!validUser || !validPass) {
     recordFailedAttempt(cleanIp);
     const entry = getAttemptEntry(cleanIp);
-    const attemptsLeft = Math.max(0, MAX_ATTEMPTS - entry.count);
-    return { success: false, blocked: false, attemptsLeft };
+    return {
+      success: false,
+      blocked: false,
+      attemptsLeft: Math.max(0, MAX_ATTEMPTS - entry.count),
+    };
   }
 
   resetAttempts(cleanIp);
 
-  // Devolver el token — la cookie la escribe el Route Handler
   return {
     success: true,
     blocked: false,
@@ -190,7 +129,7 @@ export async function loginAdmin(
   };
 }
 
-export async function logoutAdmin() {
+export async function logoutAdmin(): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.set(ADMIN_COOKIE_NAME, "", {
     httpOnly: true,
