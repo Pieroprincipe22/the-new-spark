@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { loginAdmin } from "@/lib/admin/auth";
+import { isAdminAuthenticated, loginAdmin } from "@/lib/admin/auth";
 
 function getClientIp(headerList: Headers) {
   const forwardedFor = headerList.get("x-forwarded-for");
@@ -22,6 +22,10 @@ async function loginAction(formData: FormData) {
   const usuario = String(formData.get("usuario") || "").trim();
   const password = String(formData.get("password") || "").trim();
 
+  if (!usuario || !password) {
+    redirect("/panel?error=1&attempts=5");
+  }
+
   const headerList = await headers();
   const ip = getClientIp(headerList);
 
@@ -29,12 +33,13 @@ async function loginAction(formData: FormData) {
 
   try {
     result = await loginAdmin(usuario, password, ip);
-  } catch {
+  } catch (e) {
+    console.error("[panel] loginAdmin error:", e);
     redirect("/panel?error=config");
   }
 
   if (result.success) {
-    redirect("/panel/inicio");
+    redirect("/panel/citas"); // ✅ ruta correcta
   }
 
   if (result.blocked) {
@@ -53,6 +58,12 @@ type PanelPageProps = {
 };
 
 export default async function PanelPage({ searchParams }: PanelPageProps) {
+  // Si ya está autenticado, redirigir directamente
+  const isAuthenticated = await isAdminAuthenticated();
+  if (isAuthenticated) {
+    redirect("/panel/citas");
+  }
+
   const params = searchParams ? await searchParams : {};
   const error = params?.error;
   const attemptsLeft = Number(params?.attempts ?? 0);
@@ -132,8 +143,7 @@ export default async function PanelPage({ searchParams }: PanelPageProps) {
 
           {error === "config" && (
             <p className="mb-5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-300">
-              Falta configurar ADMIN_USER, ADMIN_PASSWORD_HASH o
-              ADMIN_SESSION_SECRET en .env.local.
+              Error de configuración del servidor. Contacta al administrador.
             </p>
           )}
 
