@@ -3,11 +3,9 @@ import { loginAdmin } from "@/lib/admin/auth";
 
 function getClientIp(headerList: Headers) {
   const forwardedFor = headerList.get("x-forwarded-for");
-
   if (forwardedFor) {
     return forwardedFor.split(",")[0]?.trim() || "unknown";
   }
-
   return (
     headerList.get("x-real-ip") ||
     headerList.get("cf-connecting-ip") ||
@@ -24,21 +22,31 @@ export async function POST(request: NextRequest) {
 
     if (!usuario.trim() || !password.trim()) {
       return NextResponse.json(
-        {
-          ok: false,
-          message: "Usuario y contraseña son obligatorios.",
-        },
+        { ok: false, message: "Usuario y contraseña son obligatorios." },
         { status: 400 }
       );
     }
 
-    const result = await loginAdmin(usuario, password, getClientIp(request.headers));
+    const result = await loginAdmin(
+      usuario,
+      password,
+      getClientIp(request.headers)
+    );
 
     if (result.success) {
-      return NextResponse.json({
-        ok: true,
-        message: "Acceso concedido.",
+      // ── Construir respuesta con la cookie incluida ─────────────────────
+      const response = NextResponse.json({ ok: true, message: "Acceso concedido." });
+
+      response.cookies.set("the_new_spark_panel_session", result.sessionToken, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        maxAge: 60 * 60 * 8,
       });
+
+      return response;
+      // ────────────────────────────────────────────────────────────────────
     }
 
     if (result.blocked) {
@@ -62,11 +70,7 @@ export async function POST(request: NextRequest) {
     );
   } catch {
     return NextResponse.json(
-      {
-        ok: false,
-        message:
-          "No se pudo iniciar sesión. Revisa ADMIN_USER y ADMIN_PASSWORD en .env.local.",
-      },
+      { ok: false, message: "Error interno del servidor." },
       { status: 500 }
     );
   }
