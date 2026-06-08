@@ -1,16 +1,12 @@
 import type { NextConfig } from 'next';
 
-const isDev = process.env.NODE_ENV !== 'production';
-
 const contentSecurityPolicy = [
   "default-src 'self'",
-  isDev
-    ? "script-src 'self' 'unsafe-eval' 'unsafe-inline'"
-    : "script-src 'self'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  "connect-src 'self' https://wa.me https://api.whatsapp.com",
+  "connect-src 'self' https://whkdfdwbeumczqhpfysh.supabase.co wss://whkdfdwbeumczqhpfysh.supabase.co https://wa.me https://api.whatsapp.com",
   "frame-ancestors 'none'",
   "object-src 'none'",
   "base-uri 'self'",
@@ -36,14 +32,12 @@ const securityHeaders = [
     value: 'strict-origin-when-cross-origin',
   },
   {
+    key: 'Strict-Transport-Security',
+    value: 'max-age=86400; includeSubDomains',
+  },
+  {
     key: 'Permissions-Policy',
-    value: [
-      'camera=()',
-      'microphone=()',
-      'geolocation=()',
-      'payment=()',
-      'usb=()',
-    ].join(', '),
+    value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
   },
 ];
 
@@ -55,6 +49,15 @@ const nextConfig: NextConfig = {
         headers: securityHeaders,
       },
     ];
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'whkdfdwbeumczqhpfysh.supabase.co',
+        pathname: '/storage/v1/object/public/**',
+      },
+    ],
   },
 };
 
