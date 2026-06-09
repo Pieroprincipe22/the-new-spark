@@ -1,33 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createHmac, timingSafeEqual } from "crypto";
 
 const ADMIN_COOKIE_NAME = "the_new_spark_panel_session";
 
-function getExpectedToken(): string | null {
-  const secret = process.env.ADMIN_SESSION_SECRET;
-  const user = process.env.ADMIN_USER;
-
-  if (!secret || !user) return null;
-
-  return createHmac("sha256", secret)
-    .update(`${user}:the-new-spark-session`)
-    .digest("hex");
-}
-
 function isValidSession(cookieValue: string): boolean {
-  try {
-    const expected = getExpectedToken();
-    if (!expected) return false;
-
-    const a = Buffer.from(cookieValue, "hex");
-    const b = Buffer.from(expected, "hex");
-
-    if (a.length !== b.length) return false;
-
-    return timingSafeEqual(a, b);
-  } catch {
-    return false;
-  }
+  // Verificación de formato: 64 chars hex
+  // La verificación HMAC real la hace requireAdmin() en cada página protegida
+  return (
+    cookieValue.length === 64 &&
+    /^[a-f0-9]+$/.test(cookieValue)
+  );
 }
 
 export function middleware(request: NextRequest) {
