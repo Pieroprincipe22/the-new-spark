@@ -15,33 +15,26 @@ const contentSecurityPolicy = [
 ].join('; ');
 
 const securityHeaders = [
-  {
-    key: 'Content-Security-Policy',
-    value: contentSecurityPolicy,
-  },
-  {
-    key: 'X-Frame-Options',
-    value: 'DENY',
-  },
-  {
-    key: 'X-Content-Type-Options',
-    value: 'nosniff',
-  },
-  {
-    key: 'Referrer-Policy',
-    value: 'strict-origin-when-cross-origin',
-  },
-  {
-    key: 'Strict-Transport-Security',
-    value: 'max-age=86400; includeSubDomains',
-  },
-  {
-    key: 'Permissions-Policy',
-    value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
-  },
+  { key: 'Content-Security-Policy', value: contentSecurityPolicy },
+  { key: 'X-Frame-Options', value: 'DENY' },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { key: 'Strict-Transport-Security', value: 'max-age=86400; includeSubDomains' },
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=()' },
 ];
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      {
+        // Redirigir sin www → con www (301 permanente para SEO)
+        source: "/:path*",
+        has: [{ type: "host", value: "the-new-spark.es" }],
+        destination: "https://www.the-new-spark.es/:path*",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {
