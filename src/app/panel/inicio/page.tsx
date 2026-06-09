@@ -4,9 +4,8 @@ import { logoutAdmin, requireAdmin } from "@/lib/admin/auth";
 
 async function logoutAction() {
   "use server";
-
   await logoutAdmin();
-  redirect("/panel");
+  redirect("/login"); // ✅
 }
 
 export default async function PanelInicioPage() {
