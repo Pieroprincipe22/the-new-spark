@@ -34,19 +34,20 @@ export async function POST(request: NextRequest) {
     );
 
     if (result.success) {
-      // ── Construir respuesta con la cookie incluida ─────────────────────
-      const response = NextResponse.json({ ok: true, message: "Acceso concedido." });
+      const response = NextResponse.json({
+        ok: true,
+        message: "Acceso concedido.",
+      });
 
       response.cookies.set("the_new_spark_panel_session", result.sessionToken, {
         httpOnly: true,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict", // ← cambiado de lax a strict
+        secure: true,       // ← siempre true en producción
         path: "/",
         maxAge: 60 * 60 * 8,
       });
 
       return response;
-      // ────────────────────────────────────────────────────────────────────
     }
 
     if (result.blocked) {

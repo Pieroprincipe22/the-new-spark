@@ -1,11 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
-  const router = useRouter();
-
   const [usuario, setUsuario] = useState('Nick');
   const [password, setPassword] = useState('');
   const [mensaje, setMensaje] = useState('');
@@ -17,25 +14,28 @@ export default function LoginPage() {
     setLoading(true);
     setMensaje('');
 
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ usuario, password }),
-    });
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usuario, password }),
+        credentials: 'same-origin', // ← asegura que la cookie se envía/recibe
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    setLoading(false);
+      if (!response.ok) {
+        setMensaje(data.message || 'No se pudo iniciar sesión.');
+        setLoading(false);
+        return;
+      }
 
-    if (!response.ok) {
-      setMensaje(data.message || 'No se pudo iniciar sesión.');
-      return;
+      // Recarga completa — garantiza que Safari móvil lee la cookie
+      window.location.href = '/panel/citas';
+    } catch {
+      setMensaje('Error de conexión. Inténtalo de nuevo.');
+      setLoading(false);
     }
-
-    router.push('/panel');
-    router.refresh();
   }
 
   return (
@@ -54,12 +54,12 @@ export default function LoginPage() {
           <label htmlFor="usuario" className="mb-2 block text-sm font-medium">
             Usuario
           </label>
-
           <input
             id="usuario"
             type="text"
             value={usuario}
             onChange={(event) => setUsuario(event.target.value)}
+            autoComplete="username"
             className="w-full rounded-xl border border-white/15 bg-black px-4 py-3 text-white outline-none focus:border-white/40"
           />
         </div>
@@ -68,12 +68,12 @@ export default function LoginPage() {
           <label htmlFor="password" className="mb-2 block text-sm font-medium">
             Contraseña
           </label>
-
           <input
             id="password"
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
+            autoComplete="current-password"
             className="w-full rounded-xl border border-white/15 bg-black px-4 py-3 text-white outline-none focus:border-white/40"
           />
         </div>
