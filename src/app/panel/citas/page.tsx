@@ -81,9 +81,8 @@ async function deleteAppointmentAction(formData: FormData) {
 
 async function logoutAction() {
   "use server";
-
   await logoutAdmin();
-  redirect("/panel");
+  redirect("/login");
 }
 
 function normalizeSearchText(value: string) {

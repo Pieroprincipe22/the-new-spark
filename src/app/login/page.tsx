@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 export default function LoginPage() {
-  const [usuario, setUsuario] = useState('Nick');
+  const [usuario, setUsuario] = useState('');
   const [password, setPassword] = useState('');
   const [mensaje, setMensaje] = useState('');
   const [loading, setLoading] = useState(false);
@@ -19,7 +19,7 @@ export default function LoginPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuario, password }),
-        credentials: 'same-origin', // ← asegura que la cookie se envía/recibe
+        credentials: 'same-origin',
       });
 
       const data = await response.json();
@@ -30,8 +30,7 @@ export default function LoginPage() {
         return;
       }
 
-      // Recarga completa — garantiza que Safari móvil lee la cookie
-      window.location.href = '/panel/citas';
+      window.location.href = '/panel/inicio';
     } catch {
       setMensaje('Error de conexión. Inténtalo de nuevo.');
       setLoading(false);
