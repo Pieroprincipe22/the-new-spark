@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin/auth";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   getAllRaffles,
   getRaffleEntries,
@@ -53,6 +54,21 @@ async function changeStatusAction(formData: FormData) {
 
   revalidatePath("/panel/sorteo");
   revalidatePath("/sorteo");
+  redirect("/panel/sorteo");
+}
+
+async function deleteRaffleAction(formData: FormData) {
+  "use server";
+  await requireAdmin();
+
+  const raffleId = String(formData.get("raffleId") || "").trim();
+  if (!raffleId) return;
+
+  const supabase = createSupabaseAdminClient();
+  await supabase.from("raffle_entries").delete().eq("raffle_id", raffleId);
+  await supabase.from("raffle_configs").delete().eq("id", raffleId);
+
+  revalidatePath("/panel/sorteo");
   redirect("/panel/sorteo");
 }
 
@@ -114,14 +130,14 @@ export default async function PanelSorteoPage() {
 
   const raffles = await getAllRaffles();
 
-  // Incluir draft, open y closed como sorteo activo
   const activeRaffle = raffles.find((r) =>
     ["draft", "open", "closed"].includes(r.status)
   );
 
-  const entries = activeRaffle && activeRaffle.status !== "draft"
-    ? await getRaffleEntries(activeRaffle.id)
-    : [];
+  const entries =
+    activeRaffle && activeRaffle.status !== "draft"
+      ? await getRaffleEntries(activeRaffle.id)
+      : [];
 
   return (
     <main className="min-h-screen bg-black px-6 py-12 text-white">
@@ -205,6 +221,19 @@ export default async function PanelSorteoPage() {
                   <StatusButton raffleId={activeRaffle.id} status="open" label="Reabrir inscripciones" variant="emerald" />
                 </>
               )}
+
+              {/* Eliminar — disponible en draft y closed */}
+              {(activeRaffle.status === "draft" || activeRaffle.status === "closed") && (
+                <form action={deleteRaffleAction}>
+                  <input type="hidden" name="raffleId" value={activeRaffle.id} />
+                  <button
+                    type="submit"
+                    className="rounded-full border border-red-800 bg-red-950/20 px-4 py-2 text-xs font-semibold text-red-300 transition hover:border-red-500"
+                  >
+                    🗑️ Eliminar sorteo
+                  </button>
+                </form>
+              )}
             </div>
 
             {/* Lista de participantes */}
@@ -222,7 +251,9 @@ export default async function PanelSorteoPage() {
                         <span className="text-xs text-zinc-500">@{entry.instagramHandle.replace("@", "")}</span>
                       )}
                       {entry.consentNamePublic && (
-                        <span className="rounded-full border border-emerald-800 bg-emerald-950/30 px-2 py-0.5 text-xs text-emerald-400">Acepta publicar nombre</span>
+                        <span className="rounded-full border border-emerald-800 bg-emerald-950/30 px-2 py-0.5 text-xs text-emerald-400">
+                          Acepta publicar nombre
+                        </span>
                       )}
                     </div>
                   ))}
@@ -232,7 +263,7 @@ export default async function PanelSorteoPage() {
           </div>
         )}
 
-        {/* Crear nuevo sorteo — solo si no hay ninguno activo */}
+        {/* Crear nuevo sorteo */}
         {!activeRaffle && (
           <div className="rounded-3xl border border-zinc-800 bg-zinc-950/70 p-6">
             <h2 className="mb-6 text-lg font-bold text-white">Crear nuevo sorteo</h2>
