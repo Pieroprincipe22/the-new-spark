@@ -4,41 +4,20 @@ import { Menu } from "lucide-react";
 import { siteConfig } from "@/data/site";
 
 const navItems = [
-  {
-    label: "Inicio",
-    href: "/#inicio",
-  },
-  {
-    label: "Servicios",
-    href: "/#servicios",
-  },
-  {
-    label: "Productos",
-    href: "/#productos",
-  },
-  {
-    label: "Promoción",
-    href: "/promociones",
-  },
-  {
-    label: "Reservas",
-    href: "/#reserva",
-  },
-  {
-    label: "Contacto",
-    href: "/#contacto",
-  },
+  { label: "Inicio", href: "/#inicio" },
+  { label: "Servicios", href: "/#servicios" },
+  { label: "Productos", href: "/#productos" },
+  { label: "Promoción", href: "/promociones" },
+  { label: "Sorteo", href: "/sorteo" },
+  { label: "Reservas", href: "/#reserva" },
+  { label: "Contacto", href: "/#contacto" },
 ];
 
 export function Header() {
   return (
     <header className="absolute inset-x-0 top-0 z-50 bg-transparent">
       <div className="flex w-full items-start justify-between px-6 py-5 sm:px-8 lg:px-10 xl:px-12">
-        <Link
-          href="/#inicio"
-          aria-label={siteConfig.name}
-          className="inline-flex items-center"
-        >
+        <Link href="/#inicio" aria-label={siteConfig.name} className="inline-flex items-center">
           <Image
             src="/images/logo-the-new-spark.png"
             alt="Logo The New Spark"

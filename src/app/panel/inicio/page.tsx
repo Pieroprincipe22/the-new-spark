@@ -5,7 +5,7 @@ import { logoutAdmin, requireAdmin } from "@/lib/admin/auth";
 async function logoutAction() {
   "use server";
   await logoutAdmin();
-  redirect("/login"); // ✅
+  redirect("/login");
 }
 
 export default async function PanelInicioPage() {
@@ -19,11 +19,9 @@ export default async function PanelInicioPage() {
             <p className="mb-3 text-xs uppercase tracking-[0.4em] text-white/50">
               Panel privado
             </p>
-
             <h1 className="text-4xl font-black uppercase md:text-5xl">
               Administración
             </h1>
-
             <p className="mt-4 max-w-2xl text-white/65">
               Gestiona las citas, revisa clientes y administra la fidelidad
               digital de The New Spark.
@@ -40,7 +38,7 @@ export default async function PanelInicioPage() {
           </form>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid gap-5 md:grid-cols-3">
           <Link
             href="/panel/citas"
             className="block rounded-2xl border border-white/15 bg-white/3 p-6 transition hover:border-white/40 hover:bg-white/6"
@@ -48,11 +46,9 @@ export default async function PanelInicioPage() {
             <p className="mb-3 text-xs uppercase tracking-[0.35em] text-white/45">
               Reservas
             </p>
-
             <h2 className="mb-3 text-2xl font-black uppercase">
               Gestión de citas
             </h2>
-
             <p className="text-sm leading-6 text-white/60">
               Consulta, revisa y organiza las citas recibidas desde la web.
             </p>
@@ -65,28 +61,27 @@ export default async function PanelInicioPage() {
             <p className="mb-3 text-xs uppercase tracking-[0.35em] text-white/45">
               Fidelidad
             </p>
-
             <h2 className="mb-3 text-2xl font-black uppercase">
               Clientes de fidelidad
             </h2>
-
             <p className="text-sm leading-6 text-white/60">
               Gestiona clientes, teléfonos, sellos acumulados y recompensas.
             </p>
-            <Link
-  href="/panel/sorteo"
-  className="block rounded-2xl border border-white/15 bg-white/3 p-6 transition hover:border-white/40 hover:bg-white/6"
->
-  <p className="mb-3 text-xs uppercase tracking-[0.35em] text-white/45">
-    Sorteo
-  </p>
-  <h2 className="mb-3 text-2xl font-black uppercase">
-    Gestión del sorteo
-  </h2>
-  <p className="text-sm leading-6 text-white/60">
-    Crea sorteos, gestiona participantes y anuncia al ganador.
-  </p>
-</Link>
+          </Link>
+
+          <Link
+            href="/panel/sorteo"
+            className="block rounded-2xl border border-white/15 bg-white/3 p-6 transition hover:border-white/40 hover:bg-white/6"
+          >
+            <p className="mb-3 text-xs uppercase tracking-[0.35em] text-white/45">
+              Sorteo
+            </p>
+            <h2 className="mb-3 text-2xl font-black uppercase">
+              Gestión del sorteo
+            </h2>
+            <p className="text-sm leading-6 text-white/60">
+              Crea sorteos, gestiona participantes y anuncia al ganador.
+            </p>
           </Link>
         </div>
       </section>
