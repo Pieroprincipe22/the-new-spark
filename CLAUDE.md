@@ -1,12 +1,12 @@
 # The New Spark — Guía técnica completa
-*Última actualización: junio 2026*
+*Última actualización: 18 junio 2026*
 
 ## Stack técnico
 - **Framework:** Next.js 16.2.6 (App Router, Turbopack)
 - **Base de datos:** Supabase (PostgreSQL) — Project ID: `whkdfdwbeumczqhpfysh`
 - **Hosting:** Vercel — dominio: `www.the-new-spark.es`
 - **Estilos:** Tailwind CSS 4
-- **Email:** Resend — dominio verificado `the-new-spark.es`
+- **Email:** Resend — dominio `the-new-spark.es` verificado en IONOS
 - **Validación:** Zod
 - **Repo:** github.com/Pieroprincipe22/the-new-spark
 
@@ -19,12 +19,26 @@ SUPABASE_URL
 SUPABASE_SERVICE_ROLE_KEY
 ADMIN_USER
 ADMIN_PASSWORD
-ADMIN_PASSWORD_HASH         (formato: salt:hash generado con scrypt)
+ADMIN_PASSWORD_HASH         (formato: salt:hash generado con scryptSync)
 ADMIN_SESSION_SECRET        (string hex aleatorio de 64 chars)
 RESEND_API_KEY              (re_...)
 ```
 
-**Importante:** `ADMIN_PASSWORD_HASH` usa scryptSync con salt:hash. El token de sesión se genera con HMAC SHA256 usando `ADMIN_SESSION_SECRET` + `ADMIN_USER`.
+**Generar hash de contraseña:**
+```bash
+node -e "
+const crypto = require('crypto');
+const password = 'TU_CONTRASEÑA';
+const salt = crypto.randomBytes(16).toString('hex');
+const hash = crypto.scryptSync(password, salt, 32).toString('hex');
+console.log(salt + ':' + hash);
+"
+```
+
+**Generar ADMIN_SESSION_SECRET:**
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
 
 ---
 
@@ -32,16 +46,16 @@ RESEND_API_KEY              (re_...)
 
 - **Login público:** `/login` → llama a `POST /api/auth/login`
 - **Cookie:** `the_new_spark_panel_session` (httpOnly, secure=true, sameSite=strict, 8h)
-- **Middleware:** `src/middleware.ts` — verifica formato de cookie (64 chars hex)
+- **Middleware:** `src/middleware.ts` — verifica formato cookie (64 chars hex)
 - **Verificación real:** `requireAdmin()` en cada Server Component del panel
-- **Logout:** `POST /api/auth/logout` → borra la cookie
-- **Brute force:** máx 5 intentos fallidos → bloqueo 15 min por IP (en memoria)
-- **Flujo:** `/login` → `POST /api/auth/login` → cookie → `window.location.href = '/panel/inicio'`
+- **Brute force:** máx 5 intentos → bloqueo 15 min por IP (en memoria)
+- **Flujo login:** `/login` → `POST /api/auth/login` → cookie → `window.location.href = '/panel/inicio'`
+- **Flujo logout:** `POST /api/auth/logout` → borra cookie → `/login`
 
 **Archivos clave de auth:**
-- `src/lib/admin/auth.ts` — lógica completa de auth
-- `src/app/api/auth/login/route.ts` — escribe la cookie en la Response
-- `src/app/login/page.tsx` — formulario de login (client component)
+- `src/lib/admin/auth.ts` — lógica completa
+- `src/app/api/auth/login/route.ts` — escribe cookie en Response
+- `src/app/login/page.tsx` — formulario login (client component)
 - `src/middleware.ts` — primera barrera de protección
 
 **NUNCA cambiar el nombre de la cookie sin actualizarlo en los 3 sitios:**
@@ -61,19 +75,20 @@ RESEND_API_KEY              (re_...)
 | `/promociones` | Promociones |
 | `/contacto` | Contacto |
 | `/privacidad` | Política de privacidad (RGPD) |
-| `/sorteo` | Página pública del sorteo |
+| `/sorteo` | Página pública del sorteo con contador |
 | `/robots.txt` | SEO |
-| `/sitemap.xml` | SEO |
+| `/sitemap.xml` | SEO — incluye todas las rutas públicas |
 
 ### Panel admin (protegidas por middleware)
 | Ruta | Descripción |
 |------|-------------|
 | `/login` | Login del panel |
-| `/panel/inicio` | Dashboard con acceso a los 3 módulos |
+| `/panel` | Redirige a `/panel/inicio` si autenticado |
+| `/panel/inicio` | Dashboard con 3 módulos |
 | `/panel/citas` | Gestión de citas reservadas |
 | `/panel/fidelidad` | Módulo de sellos de fidelidad |
 | `/panel/sorteo` | Gestión del sorteo |
-| `/panel/sorteo/draw` | Página para realizar el sorteo |
+| `/panel/sorteo/draw` | Realizar el sorteo |
 
 ### API Routes
 | Ruta | Método | Auth | Descripción |
@@ -92,9 +107,9 @@ RESEND_API_KEY              (re_...)
 
 ## Base de datos Supabase
 
-### Tablas existentes
+### Tablas
 - `services` — servicios de la barbería
-- `customers` — clientes con `loyalty_stamps` (sellos de fidelidad)
+- `customers` — clientes con `loyalty_stamps`
 - `appointments` — citas reservadas
 - `loyalty_events` — historial de sellos
 - `products` — productos de la tienda
@@ -109,70 +124,77 @@ WHERE status <> 'cancelled';
 ```
 
 ### RLS activado en todas las tablas
-- `raffle_entries`: insert público, select solo ganadores
-- `raffle_configs`: select público solo si status open/closed/finished
 
 ---
 
 ## Módulo de reservas
 
 **Formulario:** `src/components/booking/BookingForm.tsx`
-- Rate limiting: 5 POST / 10 min por IP, 60 GET / min por IP
+- Rate limiting: 5 POST/10min por IP, 60 GET/min por IP
 - Validación Zod server-side en `src/lib/validation.ts`
 - RGPD: checkbox obligatorio + enlace a `/privacidad`
 - Botón WhatsApp post-reserva con mensaje pre-escrito
 - Anti-doble reserva: constraint UNIQUE en Supabase
 
 **API:** `src/app/api/appointments/route.ts`
-- Rate limiting con `src/lib/rateLimit.ts` (en memoria)
-- Validación Zod de todos los inputs
-- Maneja doble reserva con error 409
 
 ---
 
 ## Módulo de fidelidad
 
 **Reglas:** 9 sellos = 1 recompensa
-**Búsqueda:** por nombre (ilike) o teléfono (normalizado sin espacios)
+
+**Búsqueda:** por nombre (ilike) o teléfono (normalizado)
+
 **Archivos:**
 - `src/lib/admin/customers.ts` — funciones CRUD completas
-- `src/app/panel/fidelidad/page.tsx` — UI del panel (client component)
+- `src/app/panel/fidelidad/page.tsx` — UI panel (client component)
 - `src/app/api/loyalty/route.ts` — POST: add/redeem
 - `src/app/api/loyalty/search/route.ts` — GET: buscar clientes
 
-**Funciones disponibles:**
-- `getAdminCustomers()` — lista todos los clientes
-- `getAdminCustomerById(id)` — detalle con citas y eventos
+**Funciones disponibles en customers.ts:**
+- `getAdminCustomers()`
+- `getAdminCustomerById(id)`
 - `addCustomerLoyaltyStamps({customerId, stamps, reason})`
 - `redeemCustomerLoyaltyReward({customerId, stamps, reason})`
 
 ---
 
-## Módulo de sorteo
+## Módulo de sorteo ✅ COMPLETADO Y FUNCIONAL
 
 **Flujo de estados:**
 ```
 draft → open → closed → finished
 ```
 
-- `draft`: creado pero no visible públicamente
-- `open`: inscripciones abiertas, formulario visible en /sorteo
+- `draft`: creado, no visible públicamente, solo Nick puede verlo
+- `open`: inscripciones abiertas, formulario visible en /sorteo con contador
 - `closed`: inscripciones cerradas, contador de anuncio visible
-- `finished`: ganador anunciado, página muestra resultado
+- `finished`: ganador anunciado, email enviado, página muestra resultado
+
+**Flujo de Nick (admin):**
+1. `/panel/sorteo` → Crear sorteo (título, premio, fechas)
+2. Pulsar "✅ Activar sorteo" → pasa a `open`
+3. Esperar inscripciones
+4. Pulsar "Cerrar inscripciones" → pasa a `closed`
+5. Pulsar "🎲 Realizar sorteo" → elige ganador al azar + envía email
+6. Página `/sorteo` muestra el ganador automáticamente
+
+**Botón eliminar:** disponible en estado `draft` y `closed` para limpiar sorteos de prueba
 
 **Archivos:**
 - `src/lib/admin/raffle.ts` — funciones CRUD
 - `src/lib/email/raffle-winner.ts` — plantilla email con Resend
-- `src/app/sorteo/page.tsx` — página pública con contador
-- `src/app/panel/sorteo/page.tsx` — panel admin
-- `src/app/panel/sorteo/draw/page.tsx` — realizar sorteo
+- `src/app/sorteo/page.tsx` — página pública con contador en tiempo real
+- `src/app/panel/sorteo/page.tsx` — panel admin completo
+- `src/app/panel/sorteo/draw/page.tsx` — realizar sorteo con doble confirmación
 - `src/app/api/raffle/status/route.ts` — estado público
-- `src/app/api/raffle/enter/route.ts` — inscripción pública
-- `src/app/api/raffle/draw/route.ts` — realizar sorteo (admin)
+- `src/app/api/raffle/enter/route.ts` — inscripción con validación Zod
+- `src/app/api/raffle/draw/route.ts` — sorteo + email automático
 
 **Email:** Resend con dominio `the-new-spark.es` verificado en IONOS
-**From:** `sorteo@the-new-spark.es` (o el que decida Nick)
-**Requiere:** `RESEND_API_KEY` en Vercel
+**From:** `sorteo@the-new-spark.es`
+**Requiere:** `RESEND_API_KEY` en Vercel ✅ configurado
 
 ---
 
@@ -182,15 +204,14 @@ draft → open → closed → finished
 |--------|---------|
 | Rate limiting reservas | `src/lib/rateLimit.ts` |
 | Validación Zod server-side | `src/lib/validation.ts` |
-| Headers HTTP seguridad | `next.config.ts` |
-| CSP | `next.config.ts` |
-| HSTS | `next.config.ts` |
+| Headers HTTP (CSP, HSTS, X-Frame) | `next.config.ts` |
 | Brute force panel | `src/lib/admin/auth.ts` |
 | Cookie httpOnly+secure+strict | `src/app/api/auth/login/route.ts` |
 | RGPD checkbox | `src/components/booking/BookingForm.tsx` |
 | Constraint UNIQUE slots | Supabase SQL |
 | RLS en todas las tablas | Supabase |
 | Redirección www | `next.config.ts` |
+| Rate limiting sorteo | `src/app/api/raffle/enter/route.ts` |
 
 ---
 
@@ -198,55 +219,123 @@ draft → open → closed → finished
 
 - **URL canónica:** `https://www.the-new-spark.es`
 - **Redirección:** `the-new-spark.es` → `www.the-new-spark.es` (301)
-- **Sitemap:** `/sitemap.xml` — incluye todas las rutas públicas
-- **Robots:** `/robots.txt`
-- **Meta OG:** configurado en `src/app/layout.tsx`
+- **Sitemap:** `/sitemap.xml` — incluye `/`, `/reservar`, `/promociones`, `/contacto`, `/privacidad`, `/sorteo`
+- **Meta OG:** `src/app/layout.tsx`
 
 ---
 
-## Preferencias del cliente y del proyecto
+## Menú de navegación
+
+```
+Inicio | Servicios | Productos | Promoción | Sorteo | Reservas | Contacto
+```
+
+Archivo: `src/components/layout/Header.tsx`
+
+---
+
+## Preferencias del proyecto
 
 - **Diseño:** NO tocar — el cliente aprobó el diseño actual
 - **Archivos:** siempre enviar archivos completos, no diffs parciales
-- **Correcciones JSX:** tags `<a>` y similares en una sola línea para evitar corrupción al pegar
-- **Deploy:** Vercel conectado a rama `main` de GitHub — push = deploy automático
+- **Tags JSX** con links (`<a>`, `<Link>`): ponerlos en UNA SOLA LÍNEA para evitar corrupción al pegar
+- **Deploy:** Vercel conectado a rama `main` — push = deploy automático
+- **Build:** siempre ejecutar `npm run build` antes de hacer push
 
 ---
 
-## Pendiente / Próximos pasos
+## Estructura de archivos clave
 
-- [ ] Añadir email real del cliente (`sorteo@the-new-spark.es`) en `src/lib/email/raffle-winner.ts`
-- [ ] Confirmar modelo exacto de zapatillas para el sorteo
-- [ ] Probar flujo completo del sorteo en producción
-- [ ] Arreglar botón "Crear sorteo" (revisar Server Action)
+```
+src/
+├── app/
+│   ├── api/
+│   │   ├── appointments/route.ts
+│   │   ├── auth/login/route.ts
+│   │   ├── auth/logout/route.ts
+│   │   ├── loyalty/route.ts
+│   │   ├── loyalty/search/route.ts
+│   │   ├── raffle/draw/route.ts
+│   │   ├── raffle/enter/route.ts
+│   │   └── raffle/status/route.ts
+│   ├── login/page.tsx
+│   ├── panel/
+│   │   ├── page.tsx              (redirige a /panel/inicio)
+│   │   ├── inicio/page.tsx       (dashboard 3 módulos)
+│   │   ├── citas/page.tsx
+│   │   ├── fidelidad/page.tsx
+│   │   └── sorteo/
+│   │       ├── page.tsx
+│   │       └── draw/page.tsx
+│   ├── sorteo/page.tsx
+│   ├── reservar/page.tsx
+│   ├── privacidad/page.tsx
+│   ├── not-found.tsx
+│   ├── sitemap.ts
+│   └── robots.ts
+├── components/
+│   ├── booking/BookingForm.tsx
+│   ├── layout/Header.tsx
+│   └── layout/Footer.tsx
+├── lib/
+│   ├── admin/
+│   │   ├── auth.ts
+│   │   ├── appointments.ts
+│   │   ├── customers.ts
+│   │   └── raffle.ts
+│   ├── email/
+│   │   └── raffle-winner.ts
+│   ├── supabase/
+│   │   ├── admin.ts
+│   │   └── client.ts
+│   ├── rateLimit.ts
+│   └── validation.ts
+├── data/
+│   ├── catalog.ts
+│   └── site.ts
+└── middleware.ts
+```
+
+---
+
+## Pendiente
+
+- [ ] Confirmar modelo exacto de zapatillas para el sorteo real
+- [ ] Limpiar datos de prueba en Supabase antes del sorteo real:
+  ```sql
+  DELETE FROM raffle_entries;
+  DELETE FROM raffle_configs;
+  ```
 - [ ] Sentry para monitorización de errores en producción
 - [ ] `npm audit fix` para vulnerabilidades moderadas restantes
-- [ ] Actualizar este CLAUDE.md cuando se completen los pendientes
+- [ ] Verificar que Supabase no esté en pausa antes de julio
 
 ---
 
 ## Historial de trabajo realizado
 
 ### Seguridad
-- Headers HTTP (CSP, HSTS, X-Frame-Options, etc.)
-- Rate limiting en API de reservas
-- Validación Zod server-side
-- Protección brute force panel admin
-- Middleware de protección de rutas
+- Headers HTTP completos (CSP, HSTS, X-Frame-Options, etc.)
+- Rate limiting en API de reservas y sorteo
+- Validación Zod server-side en todas las APIs
+- Protección brute force panel admin (5 intentos, bloqueo 15 min)
+- Middleware de protección de rutas del panel
 - Cookie segura httpOnly+secure+strict
 - RGPD en formulario de reservas
 
 ### Limpieza de código
-- Eliminados endpoints huérfanos (`/api/reservas`, `/api/appointments/reservas`)
-- Eliminados componentes duplicados (`HeroSection`, `ServicesSection`, `FormularioReserva`, `LoyaltySection`)
-- Eliminadas librerías duplicadas (`src/lib/seguridad/`, `src/lib/validaciones/`)
-- Eliminadas páginas redireccionadoras (`/acceso-privado`, `CerrarSesionButton`)
+- Eliminados endpoints huérfanos
+- Eliminados componentes duplicados
+- Eliminadas librerías duplicadas
+- Eliminadas páginas redireccionadoras innecesarias
 
-### Funcionalidades
+### Funcionalidades añadidas
 - Módulo de fidelidad completo con búsqueda por nombre/teléfono
-- Sistema de sorteo completo con email automático via Resend
+- Sistema de sorteo completo con email automático via Resend ✅
 - Página 404 personalizada
 - Confirmación de cita por WhatsApp
-- Sitemap completo con todas las rutas
+- Sitemap completo
 - Redirección www para SEO
 - Panel admin con 3 módulos: citas, fidelidad, sorteo
+- Dominio Resend verificado en IONOS
+- Email de ganador funcional desde `sorteo@the-new-spark.es`
