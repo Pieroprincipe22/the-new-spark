@@ -73,6 +73,20 @@ export default async function PanelInicioPage() {
             <p className="text-sm leading-6 text-white/60">
               Gestiona clientes, teléfonos, sellos acumulados y recompensas.
             </p>
+            <Link
+  href="/panel/sorteo"
+  className="block rounded-2xl border border-white/15 bg-white/3 p-6 transition hover:border-white/40 hover:bg-white/6"
+>
+  <p className="mb-3 text-xs uppercase tracking-[0.35em] text-white/45">
+    Sorteo
+  </p>
+  <h2 className="mb-3 text-2xl font-black uppercase">
+    Gestión del sorteo
+  </h2>
+  <p className="text-sm leading-6 text-white/60">
+    Crea sorteos, gestiona participantes y anuncia al ganador.
+  </p>
+</Link>
           </Link>
         </div>
       </section>

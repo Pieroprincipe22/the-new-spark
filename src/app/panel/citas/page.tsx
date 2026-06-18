@@ -167,18 +167,15 @@ function StatusButton({
   variant: "confirm" | "cancel" | "restore";
 }) {
   const variantClasses = {
-    confirm:
-      "border-emerald-800 bg-emerald-950/30 text-emerald-300 hover:border-emerald-500",
+    confirm: "border-emerald-800 bg-emerald-950/30 text-emerald-300 hover:border-emerald-500",
     cancel: "border-red-800 bg-red-950/30 text-red-300 hover:border-red-500",
-    restore:
-      "border-amber-800 bg-amber-950/30 text-amber-300 hover:border-amber-500",
+    restore: "border-amber-800 bg-amber-950/30 text-amber-300 hover:border-amber-500",
   };
 
   return (
     <form action={updateStatusAction}>
       <input type="hidden" name="appointmentId" value={appointmentId} />
       <input type="hidden" name="status" value={status} />
-
       <button
         type="submit"
         className={[
@@ -206,48 +203,29 @@ function LogoutButton() {
 }
 
 function AppointmentActions({ appointment }: { appointment: Appointment }) {
-  const appointmentDateTime = `${formatDate(appointment.date)} · ${
-    appointment.time
-  }`;
+  const appointmentDateTime = `${formatDate(appointment.date)} · ${appointment.time}`;
 
   return (
     <div className="flex flex-wrap gap-3">
       {appointment.status === "pending" && (
         <>
-          <StatusButton
-            appointmentId={appointment.id}
-            status="confirmed"
-            variant="confirm"
-          >
+          <StatusButton appointmentId={appointment.id} status="confirmed" variant="confirm">
             Confirmar
           </StatusButton>
-
-          <StatusButton
-            appointmentId={appointment.id}
-            status="cancelled"
-            variant="cancel"
-          >
+          <StatusButton appointmentId={appointment.id} status="cancelled" variant="cancel">
             Cancelar
           </StatusButton>
         </>
       )}
 
       {appointment.status === "confirmed" && (
-        <StatusButton
-          appointmentId={appointment.id}
-          status="cancelled"
-          variant="cancel"
-        >
+        <StatusButton appointmentId={appointment.id} status="cancelled" variant="cancel">
           Cancelar cita
         </StatusButton>
       )}
 
       {appointment.status === "cancelled" && (
-        <StatusButton
-          appointmentId={appointment.id}
-          status="pending"
-          variant="restore"
-        >
+        <StatusButton appointmentId={appointment.id} status="pending" variant="restore">
           Restaurar a pendiente
         </StatusButton>
       )}
@@ -271,17 +249,10 @@ function AppointmentCard({ appointment }: { appointment: Appointment }) {
             <h2 className="text-xl font-semibold text-white">
               {appointment.name}
             </h2>
-
-            <span
-              className={[
-                "rounded-full border px-3 py-1 text-xs font-semibold",
-                statusClasses[appointment.status],
-              ].join(" ")}
-            >
+            <span className={["rounded-full border px-3 py-1 text-xs font-semibold", statusClasses[appointment.status]].join(" ")}>
               {statusLabels[appointment.status]}
             </span>
           </div>
-
           <p className="mt-2 text-sm text-zinc-400">
             Creada el {formatCreatedAt(appointment.createdAt)}
           </p>
@@ -297,38 +268,21 @@ function AppointmentCard({ appointment }: { appointment: Appointment }) {
 
       <div className="mt-6 grid gap-4 md:grid-cols-3">
         <div className="rounded-2xl border border-zinc-800 bg-black p-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
-            Servicio
-          </p>
-          <p className="mt-2 text-sm font-medium text-white">
-            {appointment.service}
-          </p>
+          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Servicio</p>
+          <p className="mt-2 text-sm font-medium text-white">{appointment.service}</p>
         </div>
-
         <div className="rounded-2xl border border-zinc-800 bg-black p-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
-            Teléfono
-          </p>
-          <p className="mt-2 text-sm font-medium text-white">
-            {appointment.phone}
-          </p>
+          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Teléfono</p>
+          <p className="mt-2 text-sm font-medium text-white">{appointment.phone}</p>
         </div>
-
         <div className="rounded-2xl border border-zinc-800 bg-black p-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
-            ID cita
-          </p>
-          <p className="mt-2 break-all text-sm font-medium text-white">
-            {appointment.id}
-          </p>
+          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">ID cita</p>
+          <p className="mt-2 break-all text-sm font-medium text-white">{appointment.id}</p>
         </div>
       </div>
 
       <div className="mt-6 border-t border-zinc-800 pt-5">
-        <p className="mb-3 text-xs uppercase tracking-[0.2em] text-zinc-500">
-          Acciones
-        </p>
-
+        <p className="mb-3 text-xs uppercase tracking-[0.2em] text-zinc-500">Acciones</p>
         <AppointmentActions appointment={appointment} />
       </div>
     </article>
@@ -352,13 +306,9 @@ function SearchBox({
         className="grid gap-4 lg:grid-cols-[1fr_auto_auto]"
       >
         <div>
-          <label
-            htmlFor="panel-search"
-            className="mb-2 block text-sm font-semibold text-white"
-          >
+          <label htmlFor="panel-search" className="mb-2 block text-sm font-semibold text-white">
             Buscar cita
           </label>
-
           <input
             id="panel-search"
             name="q"
@@ -396,9 +346,7 @@ function SearchBox({
   );
 }
 
-export default async function PanelCitasPage({
-  searchParams,
-}: PanelCitasPageProps) {
+export default async function PanelCitasPage({ searchParams }: PanelCitasPageProps) {
   await requireAdmin();
 
   const params = searchParams ? await searchParams : {};
@@ -415,11 +363,9 @@ export default async function PanelCitasPage({
             <p className="mb-3 text-sm font-semibold uppercase tracking-[0.35em] text-zinc-500">
               Panel privado
             </p>
-
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
               Citas reservadas
             </h1>
-
             <p className="mt-4 max-w-2xl text-base leading-7 text-zinc-400">
               Consulta, confirma, cancela, elimina o busca citas recibidas desde
               el formulario de reserva de The New Spark.
@@ -427,20 +373,12 @@ export default async function PanelCitasPage({
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Link
-              href="/reservar"
-              className="rounded-full border border-zinc-700 px-5 py-3 text-sm font-semibold text-white transition hover:border-white"
-            >
+            <Link href="/reservar" className="rounded-full border border-zinc-700 px-5 py-3 text-sm font-semibold text-white transition hover:border-white">
               Ver formulario de reserva
             </Link>
-
-            <Link
-  href="/panel/inicio"
-  className="rounded-full border border-zinc-700 px-5 py-3 text-sm font-semibold text-white transition hover:border-white"
->
-  Volver al panel
-</Link>
-
+            <Link href="/panel/inicio" className="rounded-full border border-zinc-700 px-5 py-3 text-sm font-semibold text-white transition hover:border-white">
+              Volver al panel
+            </Link>
             <LogoutButton />
           </div>
         </div>
@@ -453,24 +391,17 @@ export default async function PanelCitasPage({
 
         {appointments.length === 0 ? (
           <div className="rounded-3xl border border-zinc-800 bg-zinc-950/70 p-8">
-            <h2 className="text-xl font-semibold text-white">
-              Todavía no hay citas
-            </h2>
-
+            <h2 className="text-xl font-semibold text-white">Todavía no hay citas</h2>
             <p className="mt-3 text-sm leading-6 text-zinc-400">
-              Cuando un cliente reserve desde la página de reservas, aparecerá
-              aquí automáticamente.
+              Cuando un cliente reserve desde la página de reservas, aparecerá aquí automáticamente.
             </p>
           </div>
         ) : filteredAppointments.length === 0 ? (
           <div className="rounded-3xl border border-zinc-800 bg-zinc-950/70 p-8">
-            <h2 className="text-xl font-semibold text-white">
-              No se encontraron citas
-            </h2>
-
+            <h2 className="text-xl font-semibold text-white">No se encontraron citas</h2>
             <p className="mt-3 text-sm leading-6 text-zinc-400">
               No hay resultados para la búsqueda{" "}
-              <span className="font-semibold text-white">“{query}”</span>.
+              <span className="font-semibold text-white">&quot;{query}&quot;</span>.
               Prueba con otro nombre, teléfono, servicio o estado.
             </p>
           </div>

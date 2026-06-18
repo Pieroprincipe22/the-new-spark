@@ -5,6 +5,12 @@ const baseUrl = "https://www.the-new-spark.es";
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
+  url: `${baseUrl}/sorteo`,
+  lastModified: new Date(),
+  changeFrequency: "weekly" as const,
+  priority: 0.8,
+},
+    {
       url: baseUrl,
       lastModified: new Date(),
       changeFrequency: "weekly",
