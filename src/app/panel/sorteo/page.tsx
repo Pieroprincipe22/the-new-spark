@@ -113,8 +113,15 @@ export default async function PanelSorteoPage() {
   await requireAdmin();
 
   const raffles = await getAllRaffles();
-  const activeRaffle = raffles.find((r) => ["open", "closed"].includes(r.status));
-  const entries = activeRaffle ? await getRaffleEntries(activeRaffle.id) : [];
+
+  // Incluir draft, open y closed como sorteo activo
+  const activeRaffle = raffles.find((r) =>
+    ["draft", "open", "closed"].includes(r.status)
+  );
+
+  const entries = activeRaffle && activeRaffle.status !== "draft"
+    ? await getRaffleEntries(activeRaffle.id)
+    : [];
 
   return (
     <main className="min-h-screen bg-black px-6 py-12 text-white">
@@ -139,7 +146,7 @@ export default async function PanelSorteoPage() {
           </div>
         </div>
 
-        {/* Sorteo activo */}
+        {/* Sorteo activo / en borrador */}
         {activeRaffle && (
           <div className="rounded-3xl border border-zinc-800 bg-zinc-950/70 p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -151,11 +158,17 @@ export default async function PanelSorteoPage() {
                   </span>
                 </div>
                 <p className="mt-1 text-sm text-zinc-400">{activeRaffle.prizeName}</p>
+                {activeRaffle.prizeDescription && (
+                  <p className="mt-1 text-xs text-zinc-500">{activeRaffle.prizeDescription}</p>
+                )}
               </div>
-              <div className="shrink-0 rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-center">
-                <p className="text-xs text-zinc-500">Participantes</p>
-                <p className="mt-1 text-3xl font-black text-white">{entries.length}</p>
-              </div>
+
+              {activeRaffle.status !== "draft" && (
+                <div className="shrink-0 rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-center">
+                  <p className="text-xs text-zinc-500">Participantes</p>
+                  <p className="mt-1 text-3xl font-black text-white">{entries.length}</p>
+                </div>
+              )}
             </div>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -170,9 +183,17 @@ export default async function PanelSorteoPage() {
             </div>
 
             <div className="mt-5 flex flex-wrap gap-3 border-t border-zinc-800 pt-5">
+              {/* Borrador → Activar */}
+              {activeRaffle.status === "draft" && (
+                <StatusButton raffleId={activeRaffle.id} status="open" label="✅ Activar sorteo" variant="emerald" />
+              )}
+
+              {/* Abierto → Cerrar inscripciones */}
               {activeRaffle.status === "open" && (
                 <StatusButton raffleId={activeRaffle.id} status="closed" label="Cerrar inscripciones" variant="amber" />
               )}
+
+              {/* Cerrado → Realizar sorteo o reabrir */}
               {activeRaffle.status === "closed" && (
                 <>
                   <Link
@@ -211,7 +232,7 @@ export default async function PanelSorteoPage() {
           </div>
         )}
 
-        {/* Crear nuevo sorteo */}
+        {/* Crear nuevo sorteo — solo si no hay ninguno activo */}
         {!activeRaffle && (
           <div className="rounded-3xl border border-zinc-800 bg-zinc-950/70 p-6">
             <h2 className="mb-6 text-lg font-bold text-white">Crear nuevo sorteo</h2>
@@ -255,7 +276,7 @@ export default async function PanelSorteoPage() {
           </div>
         )}
 
-        {/* Historial de sorteos */}
+        {/* Historial de sorteos finalizados */}
         {raffles.filter((r) => r.status === "finished").length > 0 && (
           <div className="rounded-3xl border border-zinc-800 bg-zinc-950/70 p-6">
             <h2 className="mb-4 text-lg font-bold text-white">Historial de sorteos</h2>
