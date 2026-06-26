@@ -1,9 +1,4 @@
-import { CalendarDays, MessageCircle } from "lucide-react";
-import { createWhatsappLink } from "@/lib/whatsapp";
-
 export function Hero() {
-  const whatsappMessage = "Hola, quiero reservar una cita en The New Spark.";
-
   return (
     <section
       id="inicio"
@@ -37,26 +32,6 @@ export function Hero() {
           <p className="mt-4 max-w-sm text-lg leading-tight text-white/82">
             Cortes modernos, atención profesional y reservas fáciles.
           </p>
-
-          <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-            <a
-              href="#reserva"
-              className="inline-flex items-center justify-center gap-3 rounded-sm bg-white px-8 py-3 font-black text-black transition hover:bg-white/85"
-            >
-              <CalendarDays className="h-5 w-5" />
-              Reservar cita
-            </a>
-
-            <a
-              href={createWhatsappLink(whatsappMessage)}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center justify-center gap-3 rounded-sm border border-white/55 px-8 py-3 font-black text-white transition hover:bg-white hover:text-black"
-            >
-              <MessageCircle className="h-5 w-5" />
-              WhatsApp
-            </a>
-          </div>
         </div>
       </div>
     </section>

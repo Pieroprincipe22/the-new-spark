@@ -1,4 +1,5 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getNextSlot, getOccupiedSlots, getSlotsNeeded } from "@/lib/schedule";
 
 export const APPOINTMENT_STATUSES = [
   "pending",
@@ -89,6 +90,14 @@ function parseServiceDetails(serviceLabel: string) {
   };
 }
 
+// Huecos que bloquea una cita ya existente según su duración (1 o 2 huecos).
+function expandBookedSlots(time: string, durationMinutes: number): string[] {
+  if (getSlotsNeeded(durationMinutes) === 2) {
+    return [time, getNextSlot(time)];
+  }
+  return [time];
+}
+
 function toAppointment(row: SupabaseAppointmentRow): Appointment {
   return {
     id: row.id,
@@ -160,17 +169,30 @@ export async function getBookedTimesByDate(date: string): Promise<string[]> {
 
   const { data, error } = await supabase
     .from("appointments")
-    .select("appointment_time")
+    .select("appointment_time, service_duration_minutes")
     .eq("appointment_date", date)
     .neq("status", "cancelled")
     .order("appointment_time", { ascending: true })
-    .returns<Array<{ appointment_time: string }>>();
+    .returns<Array<{ appointment_time: string; service_duration_minutes: number | null }>>();
 
   if (error) {
     throw new Error(error.message);
   }
 
-  return data.map((appointment) => normalizeTime(appointment.appointment_time));
+  // Expandimos cada cita a los huecos que realmente ocupa (el de 40 min ocupa 2).
+  const blocked = new Set<string>();
+
+  for (const appointment of data) {
+    const slots = expandBookedSlots(
+      normalizeTime(appointment.appointment_time),
+      appointment.service_duration_minutes ?? 0
+    );
+    for (const slot of slots) {
+      blocked.add(slot);
+    }
+  }
+
+  return Array.from(blocked).sort();
 }
 
 export async function createAppointment(
@@ -179,11 +201,28 @@ export async function createAppointment(
   const supabase = createSupabaseAdminClient();
 
   const status = input.status ?? "pending";
-  const customerId = await upsertCustomer(input);
 
   const { servicePrice, serviceDurationMinutes } = parseServiceDetails(
     input.service
   );
+
+  // ── Validación de horario en el backend (no fiarse solo del formulario) ──
+  const slotsNeeded = getSlotsNeeded(serviceDurationMinutes);
+  const occupiedSlots = getOccupiedSlots(input.date, input.time, slotsNeeded);
+
+  // El día está cerrado o el servicio no cabe antes del cierre.
+  if (!occupiedSlots) {
+    throw new Error("Ese horario no está disponible para este servicio.");
+  }
+
+  // Alguno de los huecos que necesita ya está ocupado por otra cita.
+  const blockedSlots = await getBookedTimesByDate(input.date);
+  if (occupiedSlots.some((slot) => blockedSlots.includes(slot))) {
+    throw new Error("Ese horario ya está reservado.");
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const customerId = await upsertCustomer(input);
 
   const { data, error } = await supabase
     .from("appointments")

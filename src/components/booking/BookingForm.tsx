@@ -2,6 +2,12 @@
 
 import type { ChangeEvent, FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
+import {
+  getDayStartSlots,
+  getOccupiedSlots,
+  getSlotsNeeded,
+  isOpenDay,
+} from "@/lib/schedule";
 
 export type BookingService = {
   id?: string;
@@ -18,6 +24,7 @@ type BookingFormProps = {
   title?: string;
   subtitle?: string;
   variant?: "home" | "page";
+  selectedService?: BookingService | null;
 };
 
 type BookingFormState = {
@@ -49,13 +56,6 @@ type ConfirmedBooking = {
 // ──────────────────────────────────────────────────────────────────────────
 
 const WHATSAPP_NUMBER = "34624541595";
-
-const AVAILABLE_TIMES = [
-  "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-  "12:00", "12:30", "13:00", "13:30", "14:00", "14:30",
-  "15:00", "15:30", "16:00", "16:30", "17:00", "17:30",
-  "18:00", "18:30", "19:00",
-];
 
 const WEEK_DAYS = ["L", "M", "X", "J", "V", "S", "D"];
 
@@ -96,6 +96,18 @@ function formatDuration(service: BookingService) {
   if (typeof service.durationMinutes === "number") return `${service.durationMinutes} min`;
   if (typeof service.minutes === "number") return `${service.minutes} min`;
   return "";
+}
+
+// Minutos de duración de un servicio (para saber cuántos huecos ocupa).
+function getServiceDurationMinutes(service: BookingService): number {
+  if (typeof service.durationMinutes === "number") return service.durationMinutes;
+  if (typeof service.minutes === "number") return service.minutes;
+  if (typeof service.duration === "number") return service.duration;
+  if (typeof service.duration === "string") {
+    const match = service.duration.match(/(\d+)/);
+    if (match) return Number(match[1]);
+  }
+  return 30;
 }
 
 function getServiceName(service: BookingService) {
@@ -250,18 +262,20 @@ function BookingCalendar({
           }
 
           const isPast = calendarDay.dateValue < today;
+          const isClosed = !isOpenDay(calendarDay.dateValue);
+          const isDisabled = isPast || isClosed;
           const isSelected = selectedDate === calendarDay.dateValue;
 
           return (
             <button
               key={calendarDay.key}
               type="button"
-              disabled={isPast}
+              disabled={isDisabled}
               aria-pressed={isSelected}
               onClick={() => onSelectDate(calendarDay.dateValue)}
               className={[
                 "aspect-square rounded-lg border text-sm font-bold transition",
-                isPast
+                isDisabled
                   ? "cursor-not-allowed border-zinc-900 bg-zinc-950 text-zinc-700"
                   : isSelected
                     ? "border-white bg-white text-black"
@@ -289,6 +303,7 @@ export function BookingForm({
   title = "Reserva tu cita",
   subtitle,
   variant = "home",
+  selectedService,
 }: BookingFormProps) {
   const [form, setForm] = useState<BookingFormState>(initialForm);
   const [bookedTimes, setBookedTimes] = useState<string[]>([]);
@@ -303,6 +318,37 @@ export function BookingForm({
   // ────────────────────────────────────────────────────────────────────────
 
   const today = useMemo(() => getTodayValue(), []);
+
+  // Duración del servicio elegido → cuántos huecos necesita (1 o 2).
+  const slotsNeeded = useMemo(() => {
+    const match = services.find((service) => getServiceLabel(service) === form.service);
+    const duration = match ? getServiceDurationMinutes(match) : 30;
+    return getSlotsNeeded(duration);
+  }, [services, form.service]);
+
+  // Horas de inicio del día seleccionado (según el horario comercial).
+  const daySlots = useMemo(
+    () => (form.date ? getDayStartSlots(form.date) : []),
+    [form.date]
+  );
+
+  // ── Preselección de servicio desde las tarjetas de la izquierda ──────────
+  useEffect(() => {
+    if (!selectedService) return;
+    setForm((current) => ({ ...current, service: getServiceLabel(selectedService) }));
+  }, [selectedService]);
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // Si la hora elegida deja de ser válida (cambia el servicio, se ocupa, etc.), se limpia.
+  useEffect(() => {
+    if (!form.time || !form.date) return;
+    const occupied = getOccupiedSlots(form.date, form.time, slotsNeeded);
+    const stillValid =
+      occupied !== null && !occupied.some((slot) => bookedTimes.includes(slot));
+    if (!stillValid) {
+      setForm((current) => ({ ...current, time: "" }));
+    }
+  }, [form.time, form.date, slotsNeeded, bookedTimes]);
 
   useEffect(() => {
     if (!form.date) return;
@@ -552,25 +598,34 @@ export function BookingForm({
               <p className="rounded border border-zinc-700 px-4 py-3 text-sm text-zinc-400">
                 Cargando horarios...
               </p>
+            ) : daySlots.length === 0 ? (
+              <p className="rounded border border-zinc-700 px-4 py-3 text-sm text-zinc-400">
+                Este día está cerrado. Elige otra fecha.
+              </p>
             ) : (
               <div className="grid grid-cols-3 gap-3">
-                {AVAILABLE_TIMES.map((time) => {
-                  const isBooked = bookedTimes.includes(time);
+                {daySlots.map((time) => {
+                  const occupied = getOccupiedSlots(form.date, time, slotsNeeded);
+                  const fits = occupied !== null;
+                  const isBooked = fits && occupied.some((slot) => bookedTimes.includes(slot));
+                  const isUnavailable = !fits || isBooked;
                   const isSelected = form.time === time;
 
                   return (
                     <button
                       key={time}
                       type="button"
-                      disabled={isBooked}
+                      disabled={isUnavailable}
                       onClick={() => handleSelectTime(time)}
                       className={[
                         "rounded-md border px-3 py-3 text-sm font-bold transition",
                         isBooked
                           ? "cursor-not-allowed border-zinc-800 bg-zinc-900 text-zinc-600 line-through"
-                          : isSelected
-                            ? "border-white bg-white text-black"
-                            : "border-zinc-500 bg-black text-white hover:border-white",
+                          : !fits
+                            ? "cursor-not-allowed border-zinc-800 bg-zinc-900/50 text-zinc-700"
+                            : isSelected
+                              ? "border-white bg-white text-black"
+                              : "border-zinc-500 bg-black text-white hover:border-white",
                       ].join(" ")}
                     >
                       {time}

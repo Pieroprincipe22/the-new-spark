@@ -1,11 +1,15 @@
+"use client";
+
 import { Clock, Scissors } from "lucide-react";
 import type { Service } from "@/data/catalog";
 
 type ServicesProps = {
   services: Service[];
+  selectedId?: string;
+  onSelectService?: (service: Service) => void;
 };
 
-export function Services({ services }: ServicesProps) {
+export function Services({ services, selectedId, onSelectService }: ServicesProps) {
   return (
     <section
       id="servicios"
@@ -20,39 +24,51 @@ export function Services({ services }: ServicesProps) {
       </div>
 
       <div className="grid gap-3">
-        {services.map((service) => (
-          <article
-            key={service.id}
-            className="rounded-md border border-white/60 p-4 transition hover:bg-white hover:text-black"
-          >
-            <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-start">
-              <div className="min-w-0">
-                <div className="flex items-center gap-3">
-                  <Scissors className="h-5 w-5 shrink-0" strokeWidth={1.6} />
+        {services.map((service) => {
+          const isSelected = selectedId === service.id;
 
-                  <h3 className="text-base font-black uppercase leading-tight tracking-tight sm:text-lg">
-                    {service.name}
-                  </h3>
+          return (
+            <button
+              key={service.id}
+              type="button"
+              onClick={() => onSelectService?.(service)}
+              aria-pressed={isSelected}
+              className={[
+                "w-full rounded-md border p-4 text-left transition",
+                isSelected
+                  ? "border-white bg-white text-black"
+                  : "border-white/60 text-white hover:bg-white hover:text-black",
+              ].join(" ")}
+            >
+              <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-start">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-3">
+                    <Scissors className="h-5 w-5 shrink-0" strokeWidth={1.6} />
+
+                    <h3 className="text-base font-black uppercase leading-tight tracking-tight sm:text-lg">
+                      {service.name}
+                    </h3>
+                  </div>
+
+                  <p className="mt-2 text-sm leading-tight opacity-80">
+                    {service.description}
+                  </p>
                 </div>
 
-                <p className="mt-2 text-sm leading-tight opacity-80">
-                  {service.description}
-                </p>
-              </div>
+                <div className="shrink-0 text-right">
+                  <p className="text-2xl font-black tracking-wide">
+                    {service.price}
+                  </p>
 
-              <div className="shrink-0 text-right">
-                <p className="text-2xl font-black tracking-wide">
-                  {service.price}
-                </p>
-
-                <p className="mt-1 inline-flex items-center justify-end gap-1 rounded-full border border-current px-2 py-1 text-[11px] font-black uppercase tracking-wide opacity-80">
-                  <Clock className="h-3 w-3" />
-                  {service.durationMinutes} min
-                </p>
+                  <p className="mt-1 inline-flex items-center justify-end gap-1 rounded-full border border-current px-2 py-1 text-[11px] font-black uppercase tracking-wide opacity-80">
+                    <Clock className="h-3 w-3" />
+                    {service.durationMinutes} min
+                  </p>
+                </div>
               </div>
-            </div>
-          </article>
-        ))}
+            </button>
+          );
+        })}
       </div>
     </section>
   );

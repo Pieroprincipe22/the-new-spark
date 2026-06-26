@@ -1,12 +1,6 @@
 // src/lib/validation.ts
 import { z } from "zod";
-
-const VALID_TIMES = [
-  "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-  "12:00", "12:30", "13:00", "13:30", "14:00", "14:30",
-  "15:00", "15:30", "16:00", "16:30", "17:00", "17:30",
-  "18:00", "18:30", "19:00",
-] as const;
+import { ALL_START_TIMES } from "@/lib/schedule";
 
 export const getAvailabilitySchema = z.object({
   date: z
@@ -57,8 +51,7 @@ export const createAppointmentSchema = z.object({
     .string()
     .min(1, "La hora es obligatoria.")
     .refine(
-      (time): time is (typeof VALID_TIMES)[number] =>
-        (VALID_TIMES as readonly string[]).includes(time),
+      (time) => ALL_START_TIMES.includes(time),
       "La hora seleccionada no es válida."
     ),
 });
