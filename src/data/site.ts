@@ -9,9 +9,9 @@ export const siteConfig = {
   displayPhone: "+34 624 54 15 95",
 
   hours: {
-    weekdays: "Lunes a Viernes: 09:00 - 19:00",
-    saturday: "Sábado: 09:00 - 19:00",
-    sunday: "Domingo: 10:00 - 16:00",
+    weekdays: "Lunes a Viernes: 09:00 - 14:00 y 17:00 - 21:00",
+    saturday: "Sábado: 09:00 - 14:00",
+    sunday: "Domingo: Cerrado",
   },
 };
 
