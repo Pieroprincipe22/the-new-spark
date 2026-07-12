@@ -3,9 +3,11 @@
 import type { ChangeEvent, FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import {
+  BOOKING_OPENS_ON,
   getDayStartSlots,
   getOccupiedSlots,
   getSlotsNeeded,
+  isDateBookable,
   isOpenDay,
 } from "@/lib/schedule";
 
@@ -263,7 +265,8 @@ function BookingCalendar({
 
           const isPast = calendarDay.dateValue < today;
           const isClosed = !isOpenDay(calendarDay.dateValue);
-          const isDisabled = isPast || isClosed;
+          const isBeforeOpening = !isDateBookable(calendarDay.dateValue);
+          const isDisabled = isPast || isClosed || isBeforeOpening;
           const isSelected = selectedDate === calendarDay.dateValue;
 
           return (
@@ -287,6 +290,14 @@ function BookingCalendar({
           );
         })}
       </div>
+
+      {today < BOOKING_OPENS_ON && (
+        <p className="mt-4 rounded-lg border border-white/25 bg-zinc-950 px-3 py-2 text-center text-xs font-semibold text-white">
+          Reservas disponibles a partir del{" "}
+          <span className="font-black">18 de julio</span>. ¡Te esperamos en la
+          inauguración!
+        </p>
+      )}
 
       {selectedDate && (
         <p className="mt-4 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-center text-xs font-semibold text-zinc-300">
@@ -333,22 +344,28 @@ export function BookingForm({
   );
 
   // ── Preselección de servicio desde las tarjetas de la izquierda ──────────
-  useEffect(() => {
-    if (!selectedService) return;
-    setForm((current) => ({ ...current, service: getServiceLabel(selectedService) }));
-  }, [selectedService]);
+// ── Preselección de servicio desde las tarjetas de la izquierda ──────────
+  // Patrón "ajustar estado cuando cambia una prop" (sin useEffect):
+  // https://react.dev/learn/you-might-not-need-an-effect
+  const [prevSelectedService, setPrevSelectedService] = useState(selectedService);
+  if (selectedService !== prevSelectedService) {
+    setPrevSelectedService(selectedService);
+    if (selectedService) {
+      setForm((current) => ({ ...current, service: getServiceLabel(selectedService) }));
+    }
+  }
   // ─────────────────────────────────────────────────────────────────────────
 
   // Si la hora elegida deja de ser válida (cambia el servicio, se ocupa, etc.), se limpia.
-  useEffect(() => {
-    if (!form.time || !form.date) return;
+  const timeIsStillValid = useMemo(() => {
+    if (!form.time || !form.date) return true;
     const occupied = getOccupiedSlots(form.date, form.time, slotsNeeded);
-    const stillValid =
-      occupied !== null && !occupied.some((slot) => bookedTimes.includes(slot));
-    if (!stillValid) {
-      setForm((current) => ({ ...current, time: "" }));
-    }
+    return occupied !== null && !occupied.some((slot) => bookedTimes.includes(slot));
   }, [form.time, form.date, slotsNeeded, bookedTimes]);
+
+  if (!timeIsStillValid) {
+    setForm((current) => (current.time ? { ...current, time: "" } : current));
+  }
 
   useEffect(() => {
     if (!form.date) return;

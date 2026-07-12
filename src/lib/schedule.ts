@@ -3,6 +3,19 @@
 
 export const SLOT_MINUTES = 30;
 
+// ── Apertura de reservas (inauguración) ─────────────────────────────────────
+// Primer día que se puede reservar. Las fechas anteriores quedan bloqueadas
+// en el calendario y rechazadas por la API. A partir de este día (incluido),
+// esta regla deja de bloquear nada por sí sola: no hay que tocar el código.
+// Para futuros cierres temporales, basta con cambiar esta fecha.
+export const BOOKING_OPENS_ON = "2026-07-18";
+
+// ¿Es una fecha reservable según la apertura? (comparación segura en formato YYYY-MM-DD)
+export function isDateBookable(date: string): boolean {
+  return date >= BOOKING_OPENS_ON;
+}
+// ────────────────────────────────────────────────────────────────────────────
+
 // Duración a partir de la cual un servicio ocupa 2 huecos.
 // Solo el servicio de 40 min supera este valor; los de 35 y menos ocupan 1.
 const TWO_SLOT_THRESHOLD = 35;

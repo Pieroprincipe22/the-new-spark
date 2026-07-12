@@ -1,6 +1,6 @@
 // src/lib/validation.ts
 import { z } from "zod";
-import { ALL_START_TIMES } from "@/lib/schedule";
+import { ALL_START_TIMES, BOOKING_OPENS_ON, isDateBookable } from "@/lib/schedule";
 
 export const getAvailabilitySchema = z.object({
   date: z
@@ -45,7 +45,11 @@ export const createAppointmentSchema = z.object({
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       return new Date(date) >= today;
-    }, "No se pueden reservar citas en fechas pasadas."),
+    }, "No se pueden reservar citas en fechas pasadas.")
+    .refine(
+      (date) => isDateBookable(date),
+      `Las reservas se abren el ${BOOKING_OPENS_ON.split("-").reverse().join("/")}.`
+    ),
 
   time: z
     .string()
