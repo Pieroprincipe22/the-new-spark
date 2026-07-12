@@ -26,6 +26,20 @@ export const metadata: Metadata = {
     siteName: siteConfig.name,
     locale: "es_ES",
     type: "website",
+    images: [
+      {
+        url: "/images/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: `${siteConfig.name} - Barbería y reservas online`,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${siteConfig.name} | Barbería y reservas online`,
+    description: siteConfig.description,
+    images: ["/images/og-image.png"],
   },
 };
 
