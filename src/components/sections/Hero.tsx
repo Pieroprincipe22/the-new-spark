@@ -1,11 +1,13 @@
+import { InaugurationCountdown } from "@/components/sections/InaugurationCountdown";
+
 export function Hero() {
   return (
     <section
       id="inicio"
       className="relative isolate min-h-screen overflow-hidden bg-black"
     >
-      <div
-        className="absolute inset-0 -z-30 bg-cover bg-center bg-no-repeat"
+     <div
+        className="absolute inset-0 -z-30 bg-cover bg-[position:72%_center] bg-no-repeat md:bg-center"
         style={{
           backgroundImage: "url('/images/hero-barber-bg.png')",
         }}
@@ -32,6 +34,8 @@ export function Hero() {
           <p className="mt-4 max-w-sm text-lg leading-tight text-white/82">
             Cortes modernos, atención profesional y reservas fáciles.
           </p>
+
+          <InaugurationCountdown />
         </div>
       </div>
     </section>
