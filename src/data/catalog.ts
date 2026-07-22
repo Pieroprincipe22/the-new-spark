@@ -38,7 +38,7 @@ export const services: Service[] = [
     id: "degradado-moderno",
     name: "Degradado moderno",
     description: "Degradado actual con acabado definido y estilo moderno.",
-    price: "12,00 €",
+    price: "10,00 €",
     priceNumber: 12,
     durationMinutes: 30,
   },
