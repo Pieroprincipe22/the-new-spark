@@ -6,8 +6,8 @@ export function Hero() {
       id="inicio"
       className="relative isolate min-h-screen overflow-hidden bg-black"
     >
-     <div
-        className="absolute inset-0 -z-30 bg-cover bg-[position:72%_center] bg-no-repeat md:bg-center"
+      <div
+        className="absolute inset-0 -z-30 bg-cover bg-position-[72%_center] bg-no-repeat md:bg-center"
         style={{
           backgroundImage: "url('/images/hero-barber-bg.png')",
         }}
